@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------
+# DADOS DE CLIENTE — este repositório é PÚBLICO.
+# Nenhum arquivo de projeto real (Proesplan, contratos) pode entrar.
+# Estas regras vêm primeiro de propósito.
+# ---------------------------------------------------------------
+*.dwg
+*.dxf
+*.dwl
+*.dwl2
+*.bak
+*.sv$
+*.dws
+*.dwt
+*.csv
+*.xlsx
+*.xls
+*.pdf
+*.las
+*.laz
+*.xml
+!docs/**/*.xml
+
+# pastas de trabalho local (nunca versionar)
+/local/
+/dados/
+/refs/dwg/
+/scratch/
+
+# ---------------------------------------------------------------
+# .NET
+# ---------------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userprefs
+.vs/
+.vscode/
+*.dll
+*.pdb
+*.exe
+!lib/**/*.dll
+
+# ---------------------------------------------------------------
+# Sistema
+# ---------------------------------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log
+plot.log
+
+# ---------------------------------------------------------------
+# Vault Obsidian — logs internos, nunca vão para repositório
+# ---------------------------------------------------------------
+_HomePage/
+*.canvas
+.obsidian/
