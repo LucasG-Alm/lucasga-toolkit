@@ -17,8 +17,11 @@ Namespace Nucleo
         ''' <summary>
         ''' Interpola linearmente X, Y e Z ao longo de cada segmento.
         ''' passoMetros menor ou igual a zero devolve a lista original.
-        ''' incluirOriginais=False descarta os vértices medidos, mantendo apenas
-        ''' os interpolados e as extremidades de cada segmento.
+        ''' Com incluirOriginais=True, a saída contém todos os pontos medidos
+        ''' originais mais os pontos interpolados.
+        ''' Com incluirOriginais=False, a saída contém apenas o primeiro ponto medido,
+        ''' os pontos interpolados de todos os segmentos, e o último ponto medido —
+        ''' os vértices medidos intermediários são descartados.
         ''' </summary>
         Public Function Densificar(pontos As List(Of PontoCotado),
                                    passoMetros As Double,
