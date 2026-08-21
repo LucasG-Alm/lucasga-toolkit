@@ -41,6 +41,7 @@ Namespace Comandos.Pts3d
 
             Dim painel As New Panel() With {.Dock = DockStyle.Fill}
             _grade = New GradeDePontos() With {.Dock = DockStyle.Fill}
+            AddHandler _grade.OrdemAlterada, AddressOf AoMudarOrdemNaGrade
 
             Dim barra As New FlowLayoutPanel() With {.Dock = DockStyle.Bottom, .Height = 40, .Padding = New Padding(4)}
             Dim btDesenhar As New Button() With {.Text = "Desenhar 3DPOLY", .Width = 150, .Height = 28}
@@ -89,6 +90,15 @@ Namespace Comandos.Pts3d
             _grade.Carregar(_pontos)
         End Sub
 
+        ''' <summary>
+        ''' Mantém _pontos sincronizado quando a grade reordena por arraste ou
+        ''' clique de cabeçalho — sem isso, AoTrocarModo reordenaria uma cópia
+        ''' desatualizada e descartaria silenciosamente a ordenação do usuário.
+        ''' </summary>
+        Private Sub AoMudarOrdemNaGrade()
+            _pontos = _grade.PontosNaOrdemExibida()
+        End Sub
+
         Private Sub AoDesenhar(sender As Object, e As EventArgs)
             Dim ordenados As List(Of PontoCotado) = _grade.PontosNaOrdemExibida()
 
@@ -112,8 +122,13 @@ Namespace Comandos.Pts3d
                     Dim chk As CheckBox = CType(_controlesTopo.Controls("chkDens"), CheckBox)
                     Dim txt As TextBox = CType(_controlesTopo.Controls("txtPasso"), TextBox)
                     Dim passo As Double = 0.5
-                    Double.TryParse(txt.Text.Replace(","c, "."c), Globalization.NumberStyles.Float,
-                                    Globalization.CultureInfo.InvariantCulture, passo)
+                    Dim lido As Double
+                    If Double.TryParse(txt.Text.Replace(","c, "."c),
+                                       Globalization.NumberStyles.Float,
+                                       Globalization.CultureInfo.InvariantCulture,
+                                       lido) AndAlso lido > 0.0 Then
+                        passo = lido
+                    End If
 
                     Dim op As New OpcoesCsv With {
                         .Densificar = chk.Checked,
