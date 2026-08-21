@@ -14,7 +14,23 @@ Revit entenda, sem redesenhar ponto a ponto.
 
 | Comando | O que faz | Status |
 |---------|-----------|--------|
-| `PTS3D` | Seleciona pontos cotados (POINT ou blocos com atributos), lista em tabela ordenável e desenha uma 3D Polyline na ordem escolhida. Exporta CSV para o Revit. | em construção |
+| `PTS3D` | Seleciona pontos cotados (POINT ou blocos com atributos), lista em tabela ordenável e desenha uma 3D Polyline na ordem escolhida. Exporta CSV para o Revit. | aguardando validação no AutoCAD |
+
+---
+
+## Uso — `PTS3D`
+
+1. Rode `PTS3D` e selecione os pontos cotados no desenho (POINT ou blocos com
+   atributo de cota). A seleção vazia ou cancelada não abre nada.
+2. O comando calcula a faixa de cota plausível, sinaliza alertas (divergência
+   de cota, Z suspeito, duplicidade em XY) e abre a paleta com a tabela.
+3. Revise na paleta: troque o modo de ordenação (ordem de seleção, vizinho
+   mais próximo ou manual — manual preserva a ordem atual da tabela e não
+   reordena nada), reorganize linhas arrastando se precisar.
+4. **Desenhar 3DPOLY** cria a 3D Polyline no desenho na ordem exibida na
+   tabela. **Exportar CSV** grava um arquivo X,Y,Z para importar no Revit via
+   Toposolid → Create from Import → Points File — com opção de densificar o
+   traçado a um passo em metros configurável na barra de opções.
 
 ---
 
