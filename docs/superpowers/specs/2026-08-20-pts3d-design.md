@@ -2,7 +2,11 @@
 
 **Data:** 2026-08-20
 **Projeto:** LucasGA Toolkit
-**Status:** design aprovado, aguardando plano de implementação
+**Status:** Sprint 1 implementada, aguardando validação no AutoCAD
+
+> Este documento foi revisado em 2026-08-21 para descrever o escopo **realmente
+> entregue**. Requisitos aprovados no design original que não entraram na Sprint 1
+> estão listados em [Backlog — Sprint 2](#backlog--sprint-2), no fim do documento.
 
 ---
 
@@ -95,8 +99,11 @@ sinalizada — o plugin não escolhe, não corrige e não descarta.
 | `DuplicadoXY` | outro ponto a menos de 1 mm em XY com Z diferente | laranja |
 
 A faixa plausível é calculada da própria seleção (mediana ± 3× amplitude
-interquartil) e é editável na paleta. Nenhum alerta remove o ponto da tabela —
-todos permanecem visíveis e selecionáveis.
+interquartil). Nenhum alerta remove o ponto da tabela — todos permanecem visíveis
+e selecionáveis.
+
+> Tornar a faixa **editável na paleta** ficou para a Sprint 2. Hoje ela é
+> calculada e aplicada sem interface de ajuste.
 
 `DuplicadoXY` merece destaque: é a assinatura de topo e pé de muro levantados na
 mesma estação. Ligar os dois numa polilinha produz uma parede vertical dentro de
@@ -127,7 +134,8 @@ Blocos sem atributo nenhum entram normalmente — `Numero`, `Descricao` e
 | `VizinhoMaisProximo` | encadeamento guloso em XY a partir do primeiro ponto da seleção |
 | `Manual` | respeita a ordem atual da tabela, definida por arraste |
 
-O modo padrão é configurável e persiste entre execuções.
+O modo inicial é sempre `OrdemSelecao`. **Persistir a preferência entre
+execuções ficou para a Sprint 2.**
 
 No modo `VizinhoMaisProximo`, cada salto maior que **3× a distância mediana** da
 cadeia é marcado na tabela. É o sintoma de encadeamento que pulou para outro
@@ -158,9 +166,9 @@ separador decimal, sem cabeçalho (formato que o Revit espera em *Points File*).
 
 | Opção | Padrão |
 |-------|--------|
-| origem local (E, N) subtraída de cada coordenada | 0, 0 |
-| densificar a cada N metros | desligado |
-| incluir os vértices originais além dos interpolados | ligado |
+| origem local (E, N) subtraída de cada coordenada | 0, 0 — editável na paleta |
+| densificar a cada N metros | desligado — editável na paleta |
+| incluir os vértices originais além dos interpolados | ligado — **fixo na Sprint 1** |
 
 A origem local existe porque o Revit perde precisão além de ~16 km da origem
 interna, e o levantamento está em UTM (E≈321.000, N≈7.388.000).
@@ -172,8 +180,11 @@ interna, e o levantamento está em UTM (E≈321.000, N≈7.388.000).
 **Faz:** cria uma `Polyline3d` com os vértices na ordem recebida, na layer
 escolhida, dentro de uma única transação.
 **Recusa:** menos de 2 pontos.
-**Layer de destino:** combo com as layers do desenho mais a opção de digitar um
-nome novo (criada se não existir). Padrão: a layer corrente.
+**Layer de destino:** o componente aceita nome vazio (usa a layer corrente) ou
+um nome qualquer, criando a layer se não existir.
+
+> O **combo** que exporia essa escolha ao usuário ficou para a Sprint 2. Hoje a
+> paleta chama com o nome fixo `PTS3D`.
 
 Toda a operação é uma transação só, então um `U` desfaz a polilinha inteira.
 
@@ -188,15 +199,23 @@ posição na ordem atual. `Δ` é a diferença entre `Z` e `COTA (attr)`, em bra
 quando o bloco não tem o atributo.
 
 **Interações:**
-- clique no cabeçalho ordena pela coluna
-- arrastar linha reordena manualmente (passa o modo para `Manual`)
-- filtro por layer, por texto em `DESC` e por faixa de cota
+- clique no cabeçalho ordena pela coluna, reordenando o **modelo** e não apenas a
+  vista — alternando crescente e decrescente a cada clique na mesma coluna
+- arrastar linha reordena manualmente
+- qualquer reordenação passa o modo do combo para `Manual`, para que uma troca
+  posterior no combo não destrua o trabalho manual sem aviso
 - desmarcar linha exclui o ponto da operação sem tirá-lo da tabela
 
-**Regra do filtro:** desenhar e exportar usam **as linhas visíveis e marcadas, na
-ordem exibida**. O que está filtrado fora não entra.
+Pontos sem atributo de cota vão para o fim da lista ao ordenar por `COTA (attr)`
+ou por `Δ`, nas duas direções — não são tratados como zero.
 
-**Botões:** `Desenhar 3DPOLY` · `Exportar CSV` · `Recarregar seleção`
+**Regra de seleção:** desenhar e exportar usam **as linhas marcadas, na ordem
+exibida**.
+
+**Barra de opções (topo):** modo de ordenação · densificar CSV a cada N metros
+(desligado por padrão) · origem local E e N.
+
+**Botões:** `Desenhar 3DPOLY` · `Exportar CSV`
 
 ---
 
@@ -268,3 +287,34 @@ testes de integração ficam retidos até a instalação.
 | Densificação só no CSV | vértice interpolado não é medição; não deve sujar o DWG |
 | `PaletteSet` em vez de janela modal | o usuário precisa continuar operando o desenho com a tabela aberta |
 | WinForms `DataGridView` | reordenação de linha por arraste é nativa; em WPF custaria três vezes mais |
+
+---
+
+## Backlog — Sprint 2
+
+Requisitos aprovados no design original que **não** entraram na Sprint 1. A perda
+aconteceu na tradução da spec para o plano de implementação, não na execução das
+tarefas — o review final da branch os identificou. Decisão de 2026-08-21: viram
+Sprint 2, e esta spec passa a refletir o escopo real.
+
+| Requisito | Situação na Sprint 1 |
+|-----------|----------------------|
+| Filtro por layer, por texto em `DESC` e por faixa de cota | ausente |
+| Regra "linhas **visíveis** e marcadas" (depende do filtro) | parcial — só marcadas |
+| Combo de layer de destino, com opção de nome novo | ausente — fixo em `PTS3D` |
+| Botão `Recarregar seleção` | ausente |
+| Faixa plausível de cota editável na paleta | ausente — calculada e fixa |
+| Modo de ordenação padrão persistente entre execuções | ausente |
+| Opção "incluir os vértices originais" na exportação | ausente — fixa em `True` |
+
+`DesenhistaPolyline` já aceita nome de layer vazio (usa a corrente) e nome novo
+(cria se não existir) — o combo é só a interface que falta.
+
+### Também no backlog, vindo do review final
+
+| Item | Origem |
+|------|--------|
+| Repintura da grade em O(n²) (`AutoSizeColumnsMode.AllCells` + `Rows.Add` em laço sem `SuspendLayout`) — travaria a paleta com milhares de pontos | review final |
+| `MarcarDuplicidadeXY` é O(n²) por comparação de pares | review final |
+| Piso mínimo para o passo de densificação — `0,001` geraria milhões de vértices e estouraria o `CInt` | review final |
+| Estado do módulo `PaletaPts3d` é global: `_doc` vira referência morta se o desenho for fechado com a paleta aberta | review final |
