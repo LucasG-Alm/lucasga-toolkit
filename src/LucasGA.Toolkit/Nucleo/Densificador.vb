@@ -41,12 +41,17 @@ Namespace Nucleo
 
                 If incluirOriginais OrElse i = 0 Then saida.Add(a)
 
+                ' Um vértice para cada múltiplo do passo estritamente menor que d.
+                ' Antes o critério era n = Floor(d/passo) com laço 1 To n-1, que só
+                ' acerta quando d é múltiplo exato do passo (ex.: d=9,9 passo=5
+                ' zerava vértices; d=7 passo=2 pulava o de 6 m). Quando d=0 (pontos
+                ' coincidentes em XY, caso de topo/pé de muro), k*passoMetros nunca
+                ' é menor que d — o laço não roda e não há divisão por zero.
                 Dim d As Double = Ordenador.DistanciaXY(a, b)
-                Dim n As Integer = CInt(Math.Floor(d / passoMetros))
+                Dim k As Integer = 1
 
-                For k As Integer = 1 To n - 1
+                While k * passoMetros < d
                     Dim t As Double = (k * passoMetros) / d
-                    If t >= 1.0 Then Exit For
                     saida.Add(New PontoCotado With {
                         .X = a.X + (b.X - a.X) * t,
                         .Y = a.Y + (b.Y - a.Y) * t,
@@ -54,7 +59,8 @@ Namespace Nucleo
                         .Layer = a.Layer,
                         .Descricao = DescricaoInterpolado
                     })
-                Next
+                    k += 1
+                End While
             Next
 
             saida.Add(pontos(pontos.Count - 1))

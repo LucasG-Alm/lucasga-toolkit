@@ -157,4 +157,42 @@ Public Class TesteDensificador
         Assert.Equal(10.0, saida(1).Z, 3)
     End Sub
 
+    <Fact>
+    Public Sub Densificar_segmento_nao_multiplo_do_passo_nao_perde_vertice()
+        ' d = 9,9 m, passo = 5 m. Critério antigo (n = Floor(9,9/5) = 1, laço
+        ' 1 To 0) não gerava nenhum vértice interpolado. O correto é gerar um em
+        ' 5 m, porque 5 < 9,9 (múltiplo do passo estritamente menor que d).
+        Dim entrada As New List(Of PontoCotado) From {P(0, 0, 0), P(9.9, 0, 0)}
+        Dim saida = Densificador.Densificar(entrada, 5.0, True)
+
+        Assert.Equal(3, saida.Count)
+        Assert.Equal(0.0, saida(0).X, 3)
+        Assert.NotEqual("interpolado", saida(0).Descricao)
+        Assert.Equal(5.0, saida(1).X, 3)
+        Assert.Equal("interpolado", saida(1).Descricao)
+        Assert.Equal(9.9, saida(2).X, 3)
+        Assert.NotEqual("interpolado", saida(2).Descricao)
+    End Sub
+
+    <Fact>
+    Public Sub Densificar_segmento_com_resto_nao_pula_multiplo_intermediario()
+        ' d = 7 m, passo = 2 m. Critério antigo (n = Floor(7/2) = 3, laço 1 To 2)
+        ' gerava só em 2 e 4 m, pulando o de 6 m. O correto gera em 2, 4 e 6 m —
+        ' todo múltiplo do passo estritamente menor que d.
+        Dim entrada As New List(Of PontoCotado) From {P(0, 0, 0), P(7, 0, 0)}
+        Dim saida = Densificador.Densificar(entrada, 2.0, True)
+
+        Assert.Equal(5, saida.Count)
+        Assert.Equal(0.0, saida(0).X, 3)
+        Assert.NotEqual("interpolado", saida(0).Descricao)
+        Assert.Equal(2.0, saida(1).X, 3)
+        Assert.Equal("interpolado", saida(1).Descricao)
+        Assert.Equal(4.0, saida(2).X, 3)
+        Assert.Equal("interpolado", saida(2).Descricao)
+        Assert.Equal(6.0, saida(3).X, 3)
+        Assert.Equal("interpolado", saida(3).Descricao)
+        Assert.Equal(7.0, saida(4).X, 3)
+        Assert.NotEqual("interpolado", saida(4).Descricao)
+    End Sub
+
 End Class

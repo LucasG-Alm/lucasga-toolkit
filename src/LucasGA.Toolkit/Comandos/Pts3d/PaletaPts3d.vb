@@ -21,6 +21,14 @@ Namespace Comandos.Pts3d
         Private _doc As Document
         Private _pontos As New List(Of PontoCotado)()
         Private _controlesTopo As FlowLayoutPanel
+        Private _cbModo As ComboBox
+
+        ''' <summary>
+        ''' Suprime AoTrocarModo enquanto o combo é ajustado programaticamente
+        ''' (ex.: para "Manual" após reordenar na grade), evitando que a mudança
+        ''' de SelectedIndex dispare uma reordenação indesejada.
+        ''' </summary>
+        Private _atualizandoCombo As Boolean = False
 
         Public Sub Mostrar(doc As Document, pontos As List(Of PontoCotado))
             _doc = doc
@@ -54,22 +62,32 @@ Namespace Comandos.Pts3d
             painel.Controls.Add(_grade)
             painel.Controls.Add(barra)
 
-            Dim topo As New FlowLayoutPanel() With {.Dock = DockStyle.Top, .Height = 34, .Padding = New Padding(4)}
+            Dim topo As New FlowLayoutPanel() With {.Dock = DockStyle.Top, .Height = 60, .Padding = New Padding(4), .WrapContents = True}
 
             Dim cbModo As New ComboBox() With {.Width = 170, .DropDownStyle = ComboBoxStyle.DropDownList, .Name = "cbModo"}
             cbModo.Items.AddRange(New Object() {"Ordem de seleção", "Vizinho mais próximo", "Manual"})
             cbModo.SelectedIndex = 0
             AddHandler cbModo.SelectedIndexChanged, AddressOf AoTrocarModo
+            _cbModo = cbModo
 
             Dim chkDens As New CheckBox() With {.Text = "Densificar CSV a cada", .AutoSize = True, .Name = "chkDens", .Checked = False}
             Dim txtPasso As New TextBox() With {.Width = 50, .Text = "0,50", .Name = "txtPasso"}
             Dim lblM As New Label() With {.Text = "m", .AutoSize = True}
+
+            Dim lblOrigemE As New Label() With {.Text = "Origem E:", .AutoSize = True}
+            Dim txtOrigemE As New TextBox() With {.Width = 80, .Text = "0", .Name = "txtOrigemE"}
+            Dim lblOrigemN As New Label() With {.Text = "Origem N:", .AutoSize = True}
+            Dim txtOrigemN As New TextBox() With {.Width = 90, .Text = "0", .Name = "txtOrigemN"}
 
             topo.Controls.Add(New Label() With {.Text = "Ordem:", .AutoSize = True})
             topo.Controls.Add(cbModo)
             topo.Controls.Add(chkDens)
             topo.Controls.Add(txtPasso)
             topo.Controls.Add(lblM)
+            topo.Controls.Add(lblOrigemE)
+            topo.Controls.Add(txtOrigemE)
+            topo.Controls.Add(lblOrigemN)
+            topo.Controls.Add(txtOrigemN)
 
             painel.Controls.Add(topo)
             _controlesTopo = topo
@@ -78,8 +96,18 @@ Namespace Comandos.Pts3d
         End Sub
 
         Private Sub AoTrocarModo(sender As Object, e As EventArgs)
+            If _atualizandoCombo Then Return
+
             Dim cb As ComboBox = CType(sender, ComboBox)
             Dim modo As ModoOrdenacao = CType(cb.SelectedIndex, ModoOrdenacao)
+
+            ' O alerta de salto só faz sentido no modo que o produz — fora dele,
+            ' a marca fica apontando para uma cadeia que não existe mais.
+            If modo <> ModoOrdenacao.VizinhoMaisProximo Then
+                For Each p As PontoCotado In _pontos
+                    p.Alertas = p.Alertas And Not Alerta.SaltoNaCadeia
+                Next
+            End If
 
             If modo = ModoOrdenacao.Manual Then Return
 
@@ -94,22 +122,36 @@ Namespace Comandos.Pts3d
         ''' Mantém _pontos sincronizado quando a grade reordena por arraste ou
         ''' clique de cabeçalho — sem isso, AoTrocarModo reordenaria uma cópia
         ''' desatualizada e descartaria silenciosamente a ordenação do usuário.
+        ''' Também sincroniza o combo para "Manual": sem isso, o combo continua
+        ''' mostrando o modo anterior e uma troca subsequente reordenaria e
+        ''' destruiria o trabalho manual sem avisar.
         ''' </summary>
         Private Sub AoMudarOrdemNaGrade()
             _pontos = _grade.PontosNaOrdemExibida()
+
+            _atualizandoCombo = True
+            Try
+                _cbModo.SelectedIndex = CInt(ModoOrdenacao.Manual)
+            Finally
+                _atualizandoCombo = False
+            End Try
         End Sub
 
         Private Sub AoDesenhar(sender As Object, e As EventArgs)
-            Dim ordenados As List(Of PontoCotado) = _grade.PontosNaOrdemExibida()
+            Try
+                Dim ordenados As List(Of PontoCotado) = _grade.PontosNaOrdemExibida()
 
-            Using _doc.LockDocument()
-                Dim id = DesenhistaPolyline.Desenhar(_doc, ordenados, "PTS3D")
-                If id.IsNull Then
-                    MessageBox.Show("Marque ao menos 2 pontos para desenhar.", "PTS3D")
-                Else
-                    _doc.Editor.WriteMessage(vbLf & "3D Polyline criada." & vbLf)
-                End If
-            End Using
+                Using _doc.LockDocument()
+                    Dim id = DesenhistaPolyline.Desenhar(_doc, ordenados, "PTS3D")
+                    If id.IsNull Then
+                        MessageBox.Show("Marque ao menos 2 pontos para desenhar.", "PTS3D")
+                    Else
+                        _doc.Editor.WriteMessage(vbLf & "3D Polyline criada." & vbLf)
+                    End If
+                End Using
+            Catch ex As Exception
+                MessageBox.Show("Falha ao desenhar:" & vbLf & vbLf & ex.Message, "PTS3D")
+            End Try
         End Sub
 
         Private Sub AoExportar(sender As Object, e As EventArgs)
@@ -130,7 +172,30 @@ Namespace Comandos.Pts3d
                         passo = lido
                     End If
 
+                    ' Zero é valor legítimo aqui (significa "não transladar") — a
+                    ' única condição para aceitar é o parse ter sucesso.
+                    Dim txtE As TextBox = CType(_controlesTopo.Controls("txtOrigemE"), TextBox)
+                    Dim txtN As TextBox = CType(_controlesTopo.Controls("txtOrigemN"), TextBox)
+                    Dim origemE As Double = 0.0
+                    Dim origemN As Double = 0.0
+                    Dim lidoE As Double
+                    Dim lidoN As Double
+                    If Double.TryParse(txtE.Text.Replace(","c, "."c),
+                                       Globalization.NumberStyles.Float,
+                                       Globalization.CultureInfo.InvariantCulture,
+                                       lidoE) Then
+                        origemE = lidoE
+                    End If
+                    If Double.TryParse(txtN.Text.Replace(","c, "."c),
+                                       Globalization.NumberStyles.Float,
+                                       Globalization.CultureInfo.InvariantCulture,
+                                       lidoN) Then
+                        origemN = lidoN
+                    End If
+
                     Dim op As New OpcoesCsv With {
+                        .OrigemE = origemE,
+                        .OrigemN = origemN,
                         .Densificar = chk.Checked,
                         .PassoMetros = passo,
                         .IncluirOriginais = True

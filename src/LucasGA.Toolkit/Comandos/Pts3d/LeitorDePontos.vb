@@ -39,37 +39,48 @@ Namespace Comandos.Pts3d
 
             Using tr As Transaction = doc.Database.TransactionManager.StartTransaction()
                 For Each id As ObjectId In sel.Value.GetObjectIds()
-                    Dim ent As Entity = TryCast(tr.GetObject(id, OpenMode.ForRead), Entity)
-                    If ent Is Nothing Then Continue For
-
-                    Dim ponto As PontoCotado = Nothing
-                    Dim dbp As DBPoint = TryCast(ent, DBPoint)
-
-                    If dbp IsNot Nothing Then
-                        ponto = New PontoCotado With {
-                            .Handle = dbp.Handle.ToString(),
-                            .X = dbp.Position.X, .Y = dbp.Position.Y, .Z = dbp.Position.Z,
-                            .Layer = dbp.Layer
-                        }
-                    Else
-                        Dim blk As BlockReference = TryCast(ent, BlockReference)
-                        If blk IsNot Nothing Then
-                            ponto = New PontoCotado With {
-                                .Handle = blk.Handle.ToString(),
-                                .X = blk.Position.X, .Y = blk.Position.Y, .Z = blk.Position.Z,
-                                .Layer = blk.Layer
-                            }
-                            LerAtributos(tr, blk, ponto)
+                    ' O DWG real deste projeto traz proxies do Civil 3D. Uma falha
+                    ' de GetObject numa entidade não pode abortar a leitura inteira
+                    ' e descartar os pontos já coletados — conta como descartado e
+                    ' segue para a próxima.
+                    Try
+                        Dim ent As Entity = TryCast(tr.GetObject(id, OpenMode.ForRead), Entity)
+                        If ent Is Nothing Then
+                            res.Descartados += 1
+                            Continue For
                         End If
-                    End If
 
-                    If ponto Is Nothing Then
+                        Dim ponto As PontoCotado = Nothing
+                        Dim dbp As DBPoint = TryCast(ent, DBPoint)
+
+                        If dbp IsNot Nothing Then
+                            ponto = New PontoCotado With {
+                                .Handle = dbp.Handle.ToString(),
+                                .X = dbp.Position.X, .Y = dbp.Position.Y, .Z = dbp.Position.Z,
+                                .Layer = dbp.Layer
+                            }
+                        Else
+                            Dim blk As BlockReference = TryCast(ent, BlockReference)
+                            If blk IsNot Nothing Then
+                                ponto = New PontoCotado With {
+                                    .Handle = blk.Handle.ToString(),
+                                    .X = blk.Position.X, .Y = blk.Position.Y, .Z = blk.Position.Z,
+                                    .Layer = blk.Layer
+                                }
+                                LerAtributos(tr, blk, ponto)
+                            End If
+                        End If
+
+                        If ponto Is Nothing Then
+                            res.Descartados += 1
+                        Else
+                            ponto.OrdemSelecao = ordem
+                            ordem += 1
+                            res.Pontos.Add(ponto)
+                        End If
+                    Catch
                         res.Descartados += 1
-                    Else
-                        ponto.OrdemSelecao = ordem
-                        ordem += 1
-                        res.Pontos.Add(ponto)
-                    End If
+                    End Try
                 Next
                 tr.Commit()
             End Using

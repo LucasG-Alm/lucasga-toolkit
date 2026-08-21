@@ -26,6 +26,10 @@
 /refs/dwg/
 /scratch/
 
+# Relatórios de erro do AutoCAD (CER) — podem conter conteúdo do desenho
+ErrorReports/
+*.dmp
+
 # ---------------------------------------------------------------
 # .NET
 # ---------------------------------------------------------------

@@ -71,7 +71,16 @@ Namespace Nucleo
         ''' Devolve quantos pontos foram marcados.
         ''' </summary>
         Public Function MarcarSaltos(pontos As List(Of PontoCotado), fator As Double) As Integer
-            If pontos Is Nothing OrElse pontos.Count < 3 Then Return 0
+            If pontos Is Nothing Then Return 0
+
+            ' Limpa antes de recalcular: sem isso a marca sobrevive à volta para
+            ' outro modo de ordenação, ao arraste e à ordenação por cabeçalho,
+            ' apontando para uma cadeia que não existe mais.
+            For Each p As PontoCotado In pontos
+                p.Alertas = p.Alertas And Not Alerta.SaltoNaCadeia
+            Next
+
+            If pontos.Count < 3 Then Return 0
 
             Dim distancias As New List(Of Double)()
             For i As Integer = 1 To pontos.Count - 1

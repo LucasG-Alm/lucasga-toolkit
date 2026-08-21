@@ -35,12 +35,23 @@ Namespace Comandos.Pts3d
                 Dim btr As BlockTableRecord = CType(tr.GetObject(bt(BlockTableRecord.ModelSpace), OpenMode.ForWrite), BlockTableRecord)
 
                 Dim pl As New Polyline3d()
+
+                ' GarantirLayer só mexe na LayerTable, então pode rodar antes da
+                ' entidade existir. Mas o setter Entity.Layer precisa resolver o
+                ' nome contra a LayerTable do banco — numa entidade ainda não
+                ' residente (antes de AppendEntity/AddNewlyCreatedDBObject) isso
+                ' lança eNoDatabase. Por isso a atribuição fica depois.
+                Dim layerParaUsar As String = Nothing
                 If Not String.IsNullOrWhiteSpace(nomeLayer) Then
-                    pl.Layer = GarantirLayer(tr, db, nomeLayer)
+                    layerParaUsar = GarantirLayer(tr, db, nomeLayer)
                 End If
 
                 btr.AppendEntity(pl)
                 tr.AddNewlyCreatedDBObject(pl, True)
+
+                If layerParaUsar IsNot Nothing Then
+                    pl.Layer = layerParaUsar
+                End If
 
                 For Each p As PontoCotado In usados
                     Dim v As New PolylineVertex3d(New Point3d(p.X, p.Y, p.Z))
