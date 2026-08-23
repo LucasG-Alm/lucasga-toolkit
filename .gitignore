@@ -31,6 +31,15 @@ ErrorReports/
 *.dmp
 
 # ---------------------------------------------------------------
+# Notas do vault Obsidian que moram na pasta do projeto.
+# A nota principal tem wikilinks e referencias de contrato — nao vai
+# para repositorio publico. Só README e CLAUDE sao do repo.
+# ---------------------------------------------------------------
+/*.md
+!/README.md
+!/CLAUDE.md
+
+# ---------------------------------------------------------------
 # .NET
 # ---------------------------------------------------------------
 [Bb]in/
