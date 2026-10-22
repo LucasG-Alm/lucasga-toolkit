@@ -22,6 +22,8 @@
 
 # pastas de trabalho local (nunca versionar)
 /local/
+# casos de regressão com DWG real de contrato (ferramentas/proesplan/test_regressao.py)
+/ferramentas/proesplan/regressao/casos/
 /dados/
 /refs/dwg/
 /scratch/
@@ -71,3 +73,8 @@ plot.log
 _HomePage/
 *.canvas
 .obsidian/
+
+# Caches Python e testes locais
+__pycache__/
+*.py[cod]
+.pytest_cache/
