@@ -1,0 +1,18 @@
+# Layers fora da regra do separador decimal (R-ORT-018): padrão fnmatch, sem diferença
+# de maiúscula/minúscula, um por linha.
+
+# topografia: curvas, grade de coordenadas, pontos cotados
+*curva*
+*grid*
+*topo*
+# base ou xref inserida (layers com $ vêm de bind)
+$*
+# modelo da folha (margem, formato, carimbo)
+formato
+margem
+# tabelas de aço e descrição de armadura (padrão do detalhamento: ø12.5)
+*aço*
+*aco*
+*armadura*
+*armação*
+*armacao*
