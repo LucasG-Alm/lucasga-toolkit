@@ -1,0 +1,15 @@
+import { build } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const library=name=>fileURLToPath(new URL('../../local/prototype-location-libs/node_modules/'+name,import.meta.url));
+const result=await build({root,configFile:false,plugins:[react(),tailwindcss()],resolve:{alias:{'@':fileURLToPath(new URL('../src/',import.meta.url)),'proj4':library('proj4/dist/proj4-src.js'),'exceljs':library('exceljs/dist/exceljs.min.js'),'fflate':library('fflate/esm/browser.js')}},define:{'process.env.NODE_ENV':'"production"'},build:{write:false,cssCodeSplit:false,rollupOptions:{input:fileURLToPath(new URL('../src/prototype-location-v2.tsx',import.meta.url)),output:{format:'iife',inlineDynamicImports:true}}}});
+const assets=(Array.isArray(result)?result:[result]).flatMap(r=>r.output);
+const js=assets.filter(a=>a.type==='chunk').map(a=>a.code).join('\n').replace(/<\/script/gi,'<\\/script');
+const css=assets.filter(a=>a.type==='asset'&&a.fileName.endsWith('.css')).map(a=>a.source).join('\n');
+const folder=new URL('../design-export/',import.meta.url);await mkdir(folder,{recursive:true});
+const target=new URL('prototype-coordenadas.html',folder);
+await writeFile(target,`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none';script-src 'unsafe-inline';style-src 'unsafe-inline';img-src data: https://tile.openstreetmap.org https://server.arcgisonline.com;font-src data:;connect-src 'none'"><title>Coordenadas · protótipo de organização · LucasGA Toolkit</title><style>${css}</style></head><body><div id="root"></div><script>${js}</script></body></html>`,'utf8');
+console.log(fileURLToPath(target));
