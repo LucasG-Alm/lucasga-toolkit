@@ -106,3 +106,27 @@ def test_total_do_excel_e_o_da_pagina(tmp_path):
     finally:
         excel.Quit()
     assert round(total, 2) == esperado
+
+
+EXCEL_2007 = {"TEXT", "MID", "FIND", "IFERROR", "VLOOKUP", "CONVERT", "SUMIFS", "SUM", "SUMPRODUCT", "MAX"}
+
+
+def test_formulas_so_usam_funcoes_do_excel_2007(tmp_path):
+    """R-FER-XLS-007: a empresa usa Excel 2007-2010."""
+    import re
+
+    g = grade("2x4 N11 Ø12.5 c=391", "3N2 Ø10 c=100", "4G3 Ø6.3 c=50")
+    ws = openpyxl.load_workbook(gerar_planilha(g, PESO_POR_M, tmp_path / "p.dwg"))["FERRO"]
+    usadas = {f for row in ws.iter_rows() for c in row if isinstance(c.value, str) and c.value.startswith("=")
+              for f in re.findall(r"([A-Z][A-Z0-9._]*)\(", c.value)}
+    assert usadas <= EXCEL_2007, usadas - EXCEL_2007
+
+
+def test_total_em_negrito_italico_com_borda_dupla(tmp_path):
+    """R-FER-XLS-008"""
+    ws = openpyxl.load_workbook(gerar_planilha(grade("1N1 Ø10 c=100"), PESO_POR_M, tmp_path / "p.dwg"))["FERRO"]
+    r = next(r for r in range(4, 20) if ws[f"E{r}"].value == "Total")
+    for col in "EFGH":
+        c = ws[f"{col}{r}"]
+        assert c.font.b and c.font.i and c.border.top.style == "double", col
+    assert ws["C3"].font.b and ws["E3"].font.b and ws["K7"].font.b

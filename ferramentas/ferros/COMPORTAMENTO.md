@@ -80,6 +80,8 @@ Sem tabela dinâmica: o resumo por posição é feito com fórmula. Não precisa
 | R-FER-XLS-004 | Ao lado, resumo por posição (Ø, soma de quantidade, comprimento unitário, comprimento total), também por fórmula. |
 | R-FER-XLS-005 | O total que o Excel calcula é o mesmo total CA-50 da página (teste com Excel real, `FERROS_EXCEL=1`). |
 | R-FER-XLS-006 | Com campo vermelho, não gera (mesma regra da lista, R-FER-LIS-006). |
+| R-FER-XLS-007 | Toda fórmula usa só funções do Excel 2007 (o Excel da empresa é 2007-2010). Máximo condicional é `SUMPRODUCT(MAX((faixa=chave)*valores))`, nunca `MAXIFS`. Fórmulas gravadas em inglês: o Excel em português mostra traduzido. |
+| R-FER-XLS-008 | Cabeçalhos em negrito; linha Total em negrito + itálico com borda dupla em cima. |
 
 ## Etapa 2 — Plotar tabela (pendente)
 

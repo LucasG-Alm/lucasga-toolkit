@@ -11,6 +11,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 import openpyxl
+from openpyxl.styles import Border, Font, Side
 
 from cotador.grade import Grade, lista_da_grade, texto_para_planilha
 from cotador.resumo import montar_resumo
@@ -18,6 +19,11 @@ from cotador.resumo import montar_resumo
 
 class PlanilhaAberta(Exception):
     pass
+
+
+NEGRITO = Font(b=True)
+TOTAL = Font(b=True, i=True)
+LINHA_DUPLA = Border(top=Side(style="double"))
 
 
 def _formulas(r: int, letra: str, peso: str) -> dict[str, str]:
@@ -53,6 +59,7 @@ def gerar_planilha(grade: Grade, peso_por_m: Mapping[float, float], dwg: Path | 
                           "C3": "ELEMENTO", "D3": "N", "E3": " ∅", "F3": "QUANT", "G3": "Unit", "H3": "Total",
                           "I3": "Peso.Unit", "J3": "Peso.Total"}.items():
         ws[celula] = valor
+        ws[celula].font = NEGRITO
 
     ultima = 3 + len(grade.linhas)
     topo = ultima + 3
@@ -66,6 +73,7 @@ def gerar_planilha(grade: Grade, peso_por_m: Mapping[float, float], dwg: Path | 
     tags = lambda c: f"${c}$4:${c}${ultima}"  # noqa: E731
     for celula, valor in {f"E{topo}": " ∅", f"F{topo}": "comp. (m)", f"G{topo}": "Peso m/l", f"H{topo}": "Total"}.items():
         ws[celula] = valor
+        ws[celula].font = NEGRITO
     for r, item in enumerate(resumo, start=topo + 1):
         ws[f"E{r}"] = item.bitola
         ws[f"F{r}"] = f'=CONVERT(SUMIFS({tags("H")},{tags("E")},E{r}),"cm","m")'
@@ -74,16 +82,21 @@ def gerar_planilha(grade: Grade, peso_por_m: Mapping[float, float], dwg: Path | 
     fim = topo + len(resumo)
     ws[f"E{fim + 1}"] = "Total"
     ws[f"H{fim + 1}"] = f"=SUM(H{topo + 1}:H{fim})"
+    for coluna in "EFGH":
+        ws[f"{coluna}{fim + 1}"].font = TOTAL
+        ws[f"{coluna}{fim + 1}"].border = LINHA_DUPLA
 
     # ponytail: posicao pelo numero ("01"), como a dinamica da planilha de referencia; N1 e G1 somariam juntos
     for celula, valor in {f"K{topo}": "N", f"L{topo}": "Máx. de  ∅", f"M{topo}": "Soma de QUANT",
                           f"N{topo}": "Máx de Unit", f"O{topo}": "Soma de Total"}.items():
         ws[celula] = valor
+        ws[celula].font = NEGRITO
     for r, numero in enumerate(sorted({i.numero for i in itens}), start=topo + 1):
         ws[f"K{r}"] = f"{numero:02d}"
-        ws[f"L{r}"] = f'=MAXIFS({tags("E")},{tags("D")},K{r})'
+        # Excel 2007 nao tem MAXIFS (R-FER-XLS-007)
+        ws[f"L{r}"] = f'=SUMPRODUCT(MAX(({tags("D")}=K{r})*{tags("E")}))'
         ws[f"M{r}"] = f'=SUMIFS({tags("F")},{tags("D")},K{r})'
-        ws[f"N{r}"] = f'=MAXIFS({tags("G")},{tags("D")},K{r})'
+        ws[f"N{r}"] = f'=SUMPRODUCT(MAX(({tags("D")}=K{r})*{tags("G")}))'
         ws[f"O{r}"] = f'=SUMIFS({tags("H")},{tags("D")},K{r})'
 
     if saida.exists():
