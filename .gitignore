@@ -24,6 +24,7 @@
 /local/
 # casos de regressão com DWG real de contrato (ferramentas/proesplan/test_regressao.py)
 /ferramentas/proesplan/regressao/casos/
+/ferramentas/ferros/regressao/casos/
 /dados/
 /refs/dwg/
 /scratch/
