@@ -111,14 +111,12 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
           <thead><tr><th>Pos</th><th>Ø</th><th>Qtd</th><th>Unit (cm)</th><th>Total (cm)</th><th></th></tr></thead>
           <tbody>{calculo.lista.map(i => <tr key={i.posicao}><td>{i.posicao}</td><td>{i.bitola}</td><td>{i.quantidade}</td><td>{i.comprimento_unit_cm}</td><td>{i.comprimento_total_cm}</td><td><small className="ferros-difere">{i.avisos.join('; ')}</small></td></tr>)}</tbody>
         </table>
-        <div>
-          <table className="ferros-tabela"><caption>RESUMO CA-50</caption>
-            <thead><tr><th>Ø</th><th>Comp. (m)</th><th>kg/m</th><th>Peso (kg)</th></tr></thead>
-            <tbody>{calculo.resumo?.map(r => <tr key={r.bitola}><td>{r.bitola}</td><td>{kg(r.comprimento_m)}</td>
-              <td><Campo key={`${r.bitola}-${r.peso_por_m}`} label={`kg/m de ${r.bitola}`} valor={r.peso_por_m} onSalvar={t => mudarPeso(r.bitola, t)} /></td><td>{kg(r.peso_kg)}</td></tr>)}</tbody>
-          </table>
-          {calculo.total !== undefined && !calculo.bloqueado && <p className="ferros-total">Total CA-50: {kg(calculo.total)} kg</p>}
-        </div>
+        <table className="ferros-tabela"><caption>RESUMO CA-50</caption>
+          <thead><tr><th>Ø</th><th>Comp. (m)</th><th>kg/m</th><th>Peso (kg)</th></tr></thead>
+          <tbody>{calculo.resumo?.map(r => <tr key={r.bitola}><td>{r.bitola}</td><td>{kg(r.comprimento_m)}</td>
+            <td><Campo key={`${r.bitola}-${r.peso_por_m}`} label={`kg/m de ${r.bitola}`} valor={r.peso_por_m} onSalvar={t => mudarPeso(r.bitola, t)} /></td><td>{kg(r.peso_kg)}</td></tr>)}</tbody>
+          {calculo.total !== undefined && <tfoot><tr className="ferros-total"><td colSpan={3}>Total</td><td>{kg(calculo.total)}</td></tr></tfoot>}
+        </table>
       </div>}
       <div className="ferros-lote">
         <Button size="sm" disabled={!calculo.lista || !!calculo.bloqueado} onClick={() => void exportar()}>Gerar planilha FERRO</Button>

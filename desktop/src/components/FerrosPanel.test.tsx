@@ -35,7 +35,7 @@ test('completar o campo recalcula e grava a memória', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
   const campo = await screen.findByLabelText('Ø de A2');
   await userEvent.type(campo, '8'); await userEvent.tab();
-  await waitFor(() => expect(screen.getByText(/123,45 kg/)).toBeTruthy());
+  await waitFor(() => expect(within(screen.getByRole('row', { name: /^Total/ })).getByText('123,45')).toBeTruthy());
   const calcular = ferros.mock.calls.map(c => c[0]).filter(p => p.acao === 'calcular').pop()!;
   expect(calcular.grade!.linhas[1].bitola).toBe(8);
   expect(ferros.mock.calls.some(c => c[0].acao === 'gravar' && c[0].caminho === 'C:\\obra\\prancha.dwg')).toBe(true);
