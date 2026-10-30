@@ -36,9 +36,17 @@ function lerPeso(): Record<string, number> { try { return JSON.parse(localStorag
 const numero = (texto: string) => { const v = Number(texto.trim().replace(',', '.')); return texto.trim() === '' || !Number.isFinite(v) ? null : v; };
 const kg = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function Campo({ label, valor, falta, onSalvar, largura = 'w-16' }: { label: string; valor: string | number | null; falta?: boolean; onSalvar(texto: string): void; largura?: string }) {
+// Enter leva ao mesmo campo da próxima linha visível; o onBlur é quem salva (R-FER-UI-004).
+function Campo({ label, valor, falta, onSalvar, largura = 'w-16', campo, linha }: { label: string; valor: string | number | null; falta?: boolean; onSalvar(texto: string): void; largura?: string; campo?: string; linha?: number }) {
   const [texto, setTexto] = useState(valor === null ? '' : String(valor));
   return <input aria-label={label} className={`ferros-campo ${largura}`} data-falta={falta ? 'true' : 'false'} value={texto}
+    data-campo={campo} data-linha={linha}
+    onKeyDown={e => {
+      if (e.key !== 'Enter' || campo === undefined || linha === undefined) return;
+      e.preventDefault();
+      const proximo = document.querySelector<HTMLInputElement>(`input[data-campo="${campo}"][data-linha="${linha + 1}"]`);
+      if (proximo) { proximo.focus(); proximo.select(); } else e.currentTarget.blur();
+    }}
     onChange={e => setTexto(e.target.value)} onBlur={() => { if (texto !== (valor === null ? '' : String(valor))) onSalvar(texto); }} />;
 }
 
@@ -116,15 +124,15 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
     {grade && <>
       <table className="ferros-tabela">
         <thead><tr><th></th>{tGrade.cabecalho}<th></th></tr></thead>
-        <tbody>{tGrade.visiveis.map(l => <tr key={l.handle} data-difere={l.difere}>
+        <tbody>{tGrade.visiveis.map((l, i) => <tr key={l.handle} data-difere={l.difere}>
           <td><input type="checkbox" aria-label={`Marcar ${l.handle}`} checked={marcadas.has(l.handle)} onChange={e => { const s = new Set(marcadas); if (e.target.checked) s.add(l.handle); else s.delete(l.handle); setMarcadas(s); }} /></td>
           <td>{l.texto}{l.difere && <small className="ferros-difere"> difere do desenho ({l.quantidade_desenho})</small>}</td>
           <td>{l.posicao}</td>
-          <td className="num"><Campo label={`Ø de ${l.handle}`} valor={l.bitola} falta={l.bitola === null} onSalvar={t => mudarLinha(l.handle, { bitola: numero(t) })} /></td>
-          <td className="num"><Campo label={`c de ${l.handle}`} valor={l.comprimento_cm} falta={l.comprimento_cm === null} onSalvar={t => { const v = numero(t); mudarLinha(l.handle, { comprimento_cm: v === null ? null : Math.round(v) }); }} /></td>
-          <td className="num"><Campo label={`Qtd de ${l.handle}`} valor={l.quantidade} onSalvar={t => { const v = numero(t); if (v !== null) mudarLinha(l.handle, { quantidade: Math.round(v) }); }} /></td>
-          <td className="num"><Campo key={`${l.handle}-${l.mult}`} label={`× de ${l.handle}`} valor={l.mult} onSalvar={t => mudarMultiplicador(l.numero, t)} largura="w-12" /></td>
-          <td><Campo key={`${l.handle}-${l.elemento}`} label={`Elemento de ${l.handle}`} valor={l.elemento} onSalvar={t => mudarLinha(l.handle, { elemento: t.trim() || l.layer })} largura="w-40" /></td>
+          <td className="num"><Campo campo="bitola" linha={i} label={`Ø de ${l.handle}`} valor={l.bitola} falta={l.bitola === null} onSalvar={t => mudarLinha(l.handle, { bitola: numero(t) })} /></td>
+          <td className="num"><Campo campo="comprimento" linha={i} label={`c de ${l.handle}`} valor={l.comprimento_cm} falta={l.comprimento_cm === null} onSalvar={t => { const v = numero(t); mudarLinha(l.handle, { comprimento_cm: v === null ? null : Math.round(v) }); }} /></td>
+          <td className="num"><Campo campo="quantidade" linha={i} label={`Qtd de ${l.handle}`} valor={l.quantidade} onSalvar={t => { const v = numero(t); if (v !== null) mudarLinha(l.handle, { quantidade: Math.round(v) }); }} /></td>
+          <td className="num"><Campo key={`${l.handle}-${l.mult}`} campo="mult" linha={i} label={`× de ${l.handle}`} valor={l.mult} onSalvar={t => mudarMultiplicador(l.numero, t)} largura="w-12" /></td>
+          <td><Campo key={`${l.handle}-${l.elemento}`} campo="elemento" linha={i} label={`Elemento de ${l.handle}`} valor={l.elemento} onSalvar={t => mudarLinha(l.handle, { elemento: t.trim() || l.layer })} largura="w-40" /></td>
           <td><button className="ferros-zoom" aria-label={`Zoom em ${l.handle}`} onClick={() => zoom(l.x, l.y)}><LocateFixed size={14} /></button></td>
         </tr>)}</tbody>
       </table>

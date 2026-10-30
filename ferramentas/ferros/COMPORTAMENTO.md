@@ -90,6 +90,7 @@ Sem tabela dinâmica: o resumo por posição é feito com fórmula. Não precisa
 | R-FER-UI-001 | Toda tabela da página tem o cabeçalho da Busca Unificada: clicar no título ordena (asc → desc → sem ordem); funil por coluna com lista marcável (busca, contagem, "Selecionar todos") ou filtro de número (maior/menor/entre); OK/Cancelar/Limpar; funil aceso limpa com um clique. |
 | R-FER-UI-002 | Números: coluna centralizada, dígitos alinhados à direita entre si (fonte tabular). |
 | R-FER-UI-003 | Cabeçalhos em negrito; linha de total em negrito + itálico com borda dupla em cima. |
+| R-FER-UI-004 | Enter num campo da grade salva e leva ao mesmo campo da próxima linha visível; na última linha, salva (e o cálculo roda). |
 
 ## Etapa 2 — Plotar tabela (pendente)
 

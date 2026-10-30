@@ -108,3 +108,17 @@ test('total em linha própria, números alinhados (R-FER-UI-002 / R-FER-UI-003)'
   expect(total.className).toContain('ferros-total-linha');
   expect(screen.getByText('3128').closest('td')!.className).toContain('num');
 });
+
+test('Enter salva e desce para o mesmo campo (R-FER-UI-004)', async () => {
+  const { api, ferros } = setup(p => p.acao === 'ler' ? lido : { lista: [], resumo: [], total: 0, avisos: [] });
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  const qtd1 = await screen.findByLabelText('Qtd de A1');
+  await userEvent.clear(qtd1); await userEvent.type(qtd1, '9{Enter}');
+  expect(document.activeElement).toBe(screen.getByLabelText('Qtd de A2'));
+  await waitFor(() => expect(ferros.mock.calls.some(c => c[0].acao === 'calcular' && c[0].grade!.linhas[0].quantidade === 9)).toBe(true));
+  const qtd2 = screen.getByLabelText('Qtd de A2');
+  await userEvent.clear(qtd2); await userEvent.type(qtd2, '4{Enter}');
+  expect(document.activeElement).not.toBe(qtd2);
+  await waitFor(() => expect(ferros.mock.calls.some(c => c[0].acao === 'calcular' && c[0].grade!.linhas[1].quantidade === 4)).toBe(true));
+});
