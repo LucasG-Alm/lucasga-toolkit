@@ -1,8 +1,33 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { LocateFixed } from 'lucide-react';
 import { Button } from './ui/button';
 import type { FerrosDesenho, FerrosGrade, FerrosLinha, FerrosResposta, ToolkitAPI } from '../../shared/contracts';
+import { useTabela, type Coluna } from './tabela/Tabela';
 import './ferros-panel.css';
+
+const COLS_GRADE: Coluna[] = [
+  { key: 'texto', titulo: 'Tag no desenho', tipo: 'texto', filtro: 'lista' },
+  { key: 'posicao', titulo: 'Pos', tipo: 'texto', filtro: 'lista' },
+  { key: 'bitola', titulo: 'Ø', tipo: 'numero', filtro: 'lista', className: 'num' },
+  { key: 'comprimento_cm', titulo: 'c (cm)', tipo: 'numero', filtro: 'numero', className: 'num' },
+  { key: 'quantidade', titulo: 'Qtd', tipo: 'numero', filtro: 'numero', className: 'num' },
+  { key: 'mult', titulo: '×', tipo: 'numero', filtro: 'lista', className: 'num' },
+  { key: 'elemento', titulo: 'Elemento', tipo: 'texto', filtro: 'lista' },
+];
+const COLS_LISTA: Coluna[] = [
+  { key: 'posicao', titulo: 'Pos', tipo: 'texto', filtro: 'lista' },
+  { key: 'bitola', titulo: 'Ø', tipo: 'numero', filtro: 'lista', className: 'num' },
+  { key: 'quantidade', titulo: 'Qtd', tipo: 'numero', filtro: 'numero', className: 'num' },
+  { key: 'comprimento_unit_cm', titulo: 'Unit (cm)', tipo: 'numero', filtro: 'numero', className: 'num' },
+  { key: 'comprimento_total_cm', titulo: 'Total (cm)', tipo: 'numero', filtro: 'numero', className: 'num' },
+];
+const COLS_RESUMO: Coluna[] = [
+  { key: 'bitola', titulo: 'Ø', tipo: 'numero', filtro: 'lista', className: 'num' },
+  { key: 'comprimento_m', titulo: 'Comp. (m)', tipo: 'numero', filtro: 'numero', className: 'num' },
+  { key: 'peso_por_m', titulo: 'kg/m', tipo: 'numero', filtro: 'numero', className: 'num' },
+  { key: 'peso_kg', titulo: 'Peso (kg)', tipo: 'numero', filtro: 'numero', className: 'num' },
+];
+const SEM_ITENS: never[] = [];
 
 // A regra mora no Python (ferramentas/ferros/cotador/pagina.py): a tela só mostra e devolve a grade editada.
 const PESO = 'ferros-peso';
@@ -26,6 +51,10 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
   const [elementoLote, setElementoLote] = useState('');
   const [lendo, setLendo] = useState(false);
   const [planilha, setPlanilha] = useState<string | null>(null);
+  const linhas = useMemo(() => grade?.linhas.map(l => ({ ...l, mult: grade.multiplicadores[String(l.numero)] ?? 1 })) ?? SEM_ITENS, [grade]);
+  const tGrade = useTabela(linhas, COLS_GRADE);
+  const tLista = useTabela(calculo.lista ?? SEM_ITENS, COLS_LISTA);
+  const tResumo = useTabela(calculo.resumo ?? SEM_ITENS, COLS_RESUMO);
 
   async function atualizar(nova: FerrosGrade, alvo = desenho) {
     setGrade(nova);
@@ -86,15 +115,15 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
     {avisos.map((a, i) => <div className="warnings" key={i}>{a}</div>)}
     {grade && <>
       <table className="ferros-tabela">
-        <thead><tr><th></th><th>Tag no desenho</th><th>Pos</th><th>Ø</th><th>c (cm)</th><th>Qtd</th><th>×</th><th>Elemento</th><th></th></tr></thead>
-        <tbody>{grade.linhas.map(l => <tr key={l.handle} data-difere={l.difere}>
+        <thead><tr><th></th>{tGrade.cabecalho}<th></th></tr></thead>
+        <tbody>{tGrade.visiveis.map(l => <tr key={l.handle} data-difere={l.difere}>
           <td><input type="checkbox" aria-label={`Marcar ${l.handle}`} checked={marcadas.has(l.handle)} onChange={e => { const s = new Set(marcadas); if (e.target.checked) s.add(l.handle); else s.delete(l.handle); setMarcadas(s); }} /></td>
           <td>{l.texto}{l.difere && <small className="ferros-difere"> difere do desenho ({l.quantidade_desenho})</small>}</td>
           <td>{l.posicao}</td>
-          <td><Campo label={`Ø de ${l.handle}`} valor={l.bitola} falta={l.bitola === null} onSalvar={t => mudarLinha(l.handle, { bitola: numero(t) })} /></td>
-          <td><Campo label={`c de ${l.handle}`} valor={l.comprimento_cm} falta={l.comprimento_cm === null} onSalvar={t => { const v = numero(t); mudarLinha(l.handle, { comprimento_cm: v === null ? null : Math.round(v) }); }} /></td>
-          <td><Campo label={`Qtd de ${l.handle}`} valor={l.quantidade} onSalvar={t => { const v = numero(t); if (v !== null) mudarLinha(l.handle, { quantidade: Math.round(v) }); }} /></td>
-          <td><Campo key={`${l.handle}-${grade.multiplicadores[String(l.numero)] ?? 1}`} label={`× de ${l.handle}`} valor={grade.multiplicadores[String(l.numero)] ?? 1} onSalvar={t => mudarMultiplicador(l.numero, t)} largura="w-12" /></td>
+          <td className="num"><Campo label={`Ø de ${l.handle}`} valor={l.bitola} falta={l.bitola === null} onSalvar={t => mudarLinha(l.handle, { bitola: numero(t) })} /></td>
+          <td className="num"><Campo label={`c de ${l.handle}`} valor={l.comprimento_cm} falta={l.comprimento_cm === null} onSalvar={t => { const v = numero(t); mudarLinha(l.handle, { comprimento_cm: v === null ? null : Math.round(v) }); }} /></td>
+          <td className="num"><Campo label={`Qtd de ${l.handle}`} valor={l.quantidade} onSalvar={t => { const v = numero(t); if (v !== null) mudarLinha(l.handle, { quantidade: Math.round(v) }); }} /></td>
+          <td className="num"><Campo key={`${l.handle}-${l.mult}`} label={`× de ${l.handle}`} valor={l.mult} onSalvar={t => mudarMultiplicador(l.numero, t)} largura="w-12" /></td>
           <td><Campo key={`${l.handle}-${l.elemento}`} label={`Elemento de ${l.handle}`} valor={l.elemento} onSalvar={t => mudarLinha(l.handle, { elemento: t.trim() || l.layer })} largura="w-40" /></td>
           <td><button className="ferros-zoom" aria-label={`Zoom em ${l.handle}`} onClick={() => zoom(l.x, l.y)}><LocateFixed size={14} /></button></td>
         </tr>)}</tbody>
@@ -108,14 +137,15 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
       {calculo.bloqueado && <div className="error" role="status">{calculo.bloqueado}</div>}
       {calculo.lista && <div className="ferros-resultado">
         <table className="ferros-tabela"><caption>LISTA DE FERROS</caption>
-          <thead><tr><th>Pos</th><th>Ø</th><th>Qtd</th><th>Unit (cm)</th><th>Total (cm)</th><th></th></tr></thead>
-          <tbody>{calculo.lista.map(i => <tr key={i.posicao}><td>{i.posicao}</td><td>{i.bitola}</td><td>{i.quantidade}</td><td>{i.comprimento_unit_cm}</td><td>{i.comprimento_total_cm}</td><td><small className="ferros-difere">{i.avisos.join('; ')}</small></td></tr>)}</tbody>
+          <thead><tr>{tLista.cabecalho}<th></th></tr></thead>
+          <tbody>{tLista.visiveis.map(i => <tr key={i.posicao}><td>{i.posicao}</td><td className="num"><span>{i.bitola}</span></td><td className="num"><span>{i.quantidade}</span></td>
+            <td className="num"><span>{i.comprimento_unit_cm}</span></td><td className="num"><span>{i.comprimento_total_cm}</span></td><td><small className="ferros-difere">{i.avisos.join('; ')}</small></td></tr>)}</tbody>
         </table>
         <table className="ferros-tabela"><caption>RESUMO CA-50</caption>
-          <thead><tr><th>Ø</th><th>Comp. (m)</th><th>kg/m</th><th>Peso (kg)</th></tr></thead>
-          <tbody>{calculo.resumo?.map(r => <tr key={r.bitola}><td>{r.bitola}</td><td>{kg(r.comprimento_m)}</td>
-            <td><Campo key={`${r.bitola}-${r.peso_por_m}`} label={`kg/m de ${r.bitola}`} valor={r.peso_por_m} onSalvar={t => mudarPeso(r.bitola, t)} /></td><td>{kg(r.peso_kg)}</td></tr>)}</tbody>
-          {calculo.total !== undefined && <tfoot><tr className="ferros-total"><td colSpan={3}>Total</td><td>{kg(calculo.total)}</td></tr></tfoot>}
+          <thead><tr>{tResumo.cabecalho}</tr></thead>
+          <tbody>{tResumo.visiveis.map(r => <tr key={r.bitola}><td className="num"><span>{r.bitola}</span></td><td className="num"><span>{kg(r.comprimento_m)}</span></td>
+            <td className="num"><Campo key={`${r.bitola}-${r.peso_por_m}`} label={`kg/m de ${r.bitola}`} valor={r.peso_por_m} onSalvar={t => mudarPeso(r.bitola, t)} /></td><td className="num"><span>{kg(r.peso_kg)}</span></td></tr>)}</tbody>
+          {calculo.total !== undefined && <tfoot><tr className="ferros-total-linha"><td colSpan={3}>Total</td><td className="num"><span>{kg(calculo.total)}</span></td></tr></tfoot>}
         </table>
       </div>}
       <div className="ferros-lote">

@@ -83,6 +83,14 @@ Sem tabela dinâmica: o resumo por posição é feito com fórmula. Não precisa
 | R-FER-XLS-007 | Toda fórmula usa só funções do Excel 2007 (o Excel da empresa é 2007-2010). Máximo condicional é `SUMPRODUCT(MAX((faixa=chave)*valores))`, nunca `MAXIFS`. Fórmulas gravadas em inglês: o Excel em português mostra traduzido. |
 | R-FER-XLS-008 | Cabeçalhos em negrito; linha Total em negrito + itálico com borda dupla em cima. |
 
+### Tela da página (Desktop)
+
+| ID | Regra |
+|----|-------|
+| R-FER-UI-001 | Toda tabela da página tem o cabeçalho da Busca Unificada: clicar no título ordena (asc → desc → sem ordem); funil por coluna com lista marcável (busca, contagem, "Selecionar todos") ou filtro de número (maior/menor/entre); OK/Cancelar/Limpar; funil aceso limpa com um clique. |
+| R-FER-UI-002 | Números: coluna centralizada, dígitos alinhados à direita entre si (fonte tabular). |
+| R-FER-UI-003 | Cabeçalhos em negrito; linha de total em negrito + itálico com borda dupla em cima. |
+
 ## Etapa 2 — Plotar tabela (pendente)
 
 | ID | Regra |

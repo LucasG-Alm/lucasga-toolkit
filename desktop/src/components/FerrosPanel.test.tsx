@@ -80,3 +80,31 @@ test('gerar planilha FERRO e abrir o arquivo gerado', async () => {
   await userEvent.click(await screen.findByRole('button', { name: /Abrir prancha - FERRO\.xlsx/ }));
   expect(openResult).toHaveBeenCalledWith('C:\\obra\\prancha - FERRO.xlsx', false);
 });
+
+test('título ordena e funil filtra a grade (R-FER-UI-001)', async () => {
+  const { api } = setup(p => p.acao === 'ler' ? lido : { lista: [], resumo: [], total: 0, avisos: [] });
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  await screen.findByText('2x4N11 Ø12.5 c=391');
+  const grade = screen.getAllByRole('table')[0];
+  const primeira = () => within(grade).getAllByRole('row')[1].textContent;
+  expect(primeira()).toContain('2x4N11');
+  await userEvent.click(within(grade).getByRole('button', { name: 'Ordenar por Pos' }));
+  expect(primeira()).toContain('3 N1');
+  await userEvent.click(within(grade).getByRole('button', { name: 'Filtrar Pos' }));
+  await userEvent.click(screen.getByRole('checkbox', { name: /^N1\b/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'OK' }));
+  expect(within(grade).queryByText('3 N1 c/10')).toBeNull();
+  expect(within(grade).getByText('2x4N11 Ø12.5 c=391')).toBeTruthy();
+});
+
+test('total em linha própria, números alinhados (R-FER-UI-002 / R-FER-UI-003)', async () => {
+  const { api } = setup(p => p.acao === 'ler' ? lido : p.acao === 'calcular'
+    ? { lista: [{ posicao: 'N11', bitola: 12.5, comprimento_unit_cm: 391, quantidade: 8, comprimento_total_cm: 3128, avisos: [] }],
+        resumo: [{ bitola: 12.5, comprimento_m: 31.28, peso_por_m: 1, peso_kg: 31.28 }], total: 31.28 } : { avisos: [] });
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  const total = await screen.findByRole('row', { name: /^Total/ });
+  expect(total.className).toContain('ferros-total-linha');
+  expect(screen.getByText('3128').closest('td')!.className).toContain('num');
+});

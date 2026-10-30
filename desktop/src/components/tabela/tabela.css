@@ -1,0 +1,24 @@
+th .th-titulo { background: none; border: none; color: inherit; font: inherit; font-weight: 700; cursor: pointer; padding: 0; }
+th .th-seta { font-size: 10px; }
+th .th-funil { background: none; border: none; cursor: pointer; color: var(--muted-foreground, #888); padding: 0 0 0 4px; vertical-align: middle; }
+th .th-funil.aceso { color: var(--primary, #e8833a); }
+.funil-menu { position: fixed; z-index: 1000; width: 260px; background: var(--popover, #1f2023); color: var(--popover-foreground, inherit);
+  border: 1px solid var(--border, #444); border-radius: 6px; padding: 6px; font-size: 13px; box-shadow: 0 6px 24px rgb(0 0 0 / .35); }
+.funil-menu button { background: none; border: none; color: inherit; cursor: pointer; text-align: left; padding: 4px 6px; border-radius: 4px; }
+.funil-menu button:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
+.funil-ord, .funil-limpar { display: block; width: 100%; }
+.funil-sep { border-top: 1px solid var(--border, #444); margin: 4px 0; }
+.funil-busca { width: 100%; margin: 4px 0; padding: 3px 6px; border: 1px solid var(--border, #444); border-radius: 4px; background: transparent; color: inherit; }
+.funil-lista { max-height: 220px; overflow: auto; }
+.funil-item { display: flex; align-items: center; gap: 6px; padding: 2px 4px; }
+.funil-item-txt { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.funil-item-n { color: var(--muted-foreground, #888); font-variant-numeric: tabular-nums; }
+.funil-num label { display: block; padding: 2px 4px; }
+.funil-num-campos { display: flex; gap: 6px; padding: 4px; }
+.funil-num-campos input { width: 50%; padding: 2px 4px; border: 1px solid var(--border, #444); border-radius: 4px; background: transparent; color: inherit; }
+.funil-acoes { display: flex; justify-content: flex-end; gap: 6px; padding-top: 4px; }
+/* R-FER-UI-002: coluna centralizada, dígitos alinhados à direita entre si */
+td.num, th.num { text-align: center; }
+td.num > span, td.num > input { display: inline-block; min-width: 7ch; text-align: right; font-variant-numeric: tabular-nums; }
+/* R-FER-UI-003 */
+tr.ferros-total-linha td { font-weight: 700; font-style: italic; border-top: 3px double currentColor; }
