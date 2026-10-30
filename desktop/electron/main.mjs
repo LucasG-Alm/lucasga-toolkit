@@ -49,7 +49,7 @@ const locationService = new LocationService({
   cacheContext:async()=>JSON.stringify([await readSettings(settingsFile),googleKey.revision]),
   execute:async request=>(await locationBridge(request)).location,
 });
-const acoesFerros = new Set(['ler', 'desenho', 'zoom', 'calcular', 'gravar']);
+const acoesFerros = new Set(['ler', 'desenho', 'zoom', 'calcular', 'gravar', 'exportar']);
 let desenhoFerros = null;
 const inspections = new Map();
 const inspectionKey = (tool, input, options) => JSON.stringify([tool, path.resolve(input),
@@ -204,13 +204,14 @@ function registerHandlers() {
   handle('ferros', async pedido => {
     if (!pedido || typeof pedido !== 'object' || !acoesFerros.has(pedido.acao)) throw Error('Pedido inválido.');
     // a memória só é gravada ao lado do desenho que o próprio AutoCAD informou
-    if (pedido.acao === 'gravar' && pedido.caminho && pedido.caminho !== desenhoFerros) throw Error('Desenho diferente do lido. Leia de novo.');
+    if (['gravar', 'exportar'].includes(pedido.acao) && pedido.caminho && pedido.caminho !== desenhoFerros) throw Error('Desenho diferente do lido. Leia de novo.');
     const settings = await readSettings(settingsFile);
     const required = tools.find(t => t.id === 'ferros').requirements;
     const runtime = await resolveRuntime(settings, required);
     if (!runtime.python || runtime.missing.length) throw Error(`Confira Python e as bibliotecas ${runtime.missing.length ? runtime.missing.join(', ') : required.join(', ')} em Configurações.`);
     const resposta = (await runBridge(runtime.python, bridge, { tool: 'ferros', pedido }, () => {})).ferros;
     if (resposta?.desenho) desenhoFerros = resposta.desenho.caminho;
+    if (resposta?.arquivo) results.add(path.resolve(resposta.arquivo));
     return resposta;
   });
   handle('open-result', async (output, reveal) => {

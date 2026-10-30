@@ -25,6 +25,7 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
   const [elementoLote, setElementoLote] = useState('');
   const [lendo, setLendo] = useState(false);
+  const [planilha, setPlanilha] = useState<string | null>(null);
 
   async function atualizar(nova: FerrosGrade, alvo = desenho) {
     setGrade(nova);
@@ -39,7 +40,7 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
     try {
       const r = await api.ferros({ acao: 'ler' });
       if (r.cancelado || !r.grade) return;
-      setDesenho(r.desenho ?? null); setMarcadas(new Set());
+      setDesenho(r.desenho ?? null); setMarcadas(new Set()); setPlanilha(null);
       await atualizar(r.grade, r.desenho ?? null);
       setAvisos(old => [...(r.avisos ?? []), ...old]);
     } catch (erro) { onError(erro); } finally { setLendo(false); }
@@ -66,6 +67,14 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
     const v = numero(texto); if (v === null || !grade) return;
     try { localStorage.setItem(PESO, JSON.stringify({ ...lerPeso(), [String(bitola)]: v })); } catch { /* sem armazenamento: vale só nesta conta */ }
     void atualizar(grade);
+  }
+  async function exportar() {
+    if (!grade) return;
+    try {
+      const r = await api.ferros({ acao: 'exportar', grade, caminho: desenho?.caminho ?? null, peso: lerPeso() });
+      if (r.bloqueado) setCalculo(old => ({ ...old, bloqueado: r.bloqueado }));
+      setPlanilha(r.arquivo ?? null);
+    } catch (erro) { onError(erro); }
   }
   const zoom = (x: number, y: number) => void api.ferros({ acao: 'zoom', x, y }).catch(onError);
 
@@ -109,6 +118,10 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
         </table>
       </div>}
       {calculo.total !== undefined && !calculo.bloqueado && <p className="ferros-total">Total CA-50: {kg(calculo.total)} kg</p>}
+      <div className="ferros-lote">
+        <Button size="sm" disabled={!calculo.lista || !!calculo.bloqueado} onClick={() => void exportar()}>Gerar planilha FERRO</Button>
+        {planilha && <Button size="sm" variant="ghost" onClick={() => void api.openResult(planilha, false).catch(onError)}>Abrir {planilha.split(/[\\/]/).pop()}</Button>}
+      </div>
 
       {grade.nao_entendi.length > 0 && <details open className="ferros-nao"><summary>Não entendi ({grade.nao_entendi.length})</summary>
         {grade.nao_entendi.map(n => <div key={n.handle} className="ferros-nao-linha"><span>{n.texto}</span>

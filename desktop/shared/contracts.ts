@@ -65,14 +65,14 @@ export interface FerrosLinha {
 export interface FerrosGrade { linhas: FerrosLinha[]; nao_entendi: {handle: string; texto: string; x: number; y: number}[]; multiplicadores: Record<string, number> }
 export interface FerrosDesenho { nome: string; caminho: string | null }
 export interface FerrosPedido {
-  acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar';
+  acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar' | 'exportar';
   grade?: FerrosGrade; caminho?: string | null; x?: number; y?: number; peso?: Record<string, number>;
 }
 export interface FerrosItemLista { posicao: string; bitola: number; comprimento_unit_cm: number; quantidade: number; comprimento_total_cm: number; avisos: string[] }
 export interface FerrosItemResumo { bitola: number; comprimento_m: number; peso_por_m: number; peso_kg: number }
 export interface FerrosResposta {
   desenho?: FerrosDesenho; grade?: FerrosGrade; avisos?: string[]; cancelado?: boolean;
-  lista?: FerrosItemLista[]; resumo?: FerrosItemResumo[]; total?: number; bloqueado?: string;
+  lista?: FerrosItemLista[]; resumo?: FerrosItemResumo[]; total?: number; bloqueado?: string; arquivo?: string;
 }
 export interface ToolkitAPI {
   ferros(pedido: FerrosPedido): Promise<FerrosResposta>;

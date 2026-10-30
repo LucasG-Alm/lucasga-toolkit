@@ -66,3 +66,17 @@ test('sem AutoCAD o erro aparece e nada é mostrado', async () => {
   await waitFor(() => expect(onError).toHaveBeenCalled());
   expect(screen.queryByRole('table')).toBeNull();
 });
+
+test('gerar planilha FERRO e abrir o arquivo gerado', async () => {
+  const openResult = vi.fn(async () => {});
+  const ferros = vi.fn(async (p: FerrosPedido) => p.acao === 'ler' ? lido : p.acao === 'calcular' ? { lista: [], resumo: [], total: 1 } : p.acao === 'exportar' ? { arquivo: 'C:\\obra\\prancha - FERRO.xlsx' } : { avisos: [] });
+  const api = { ferros, openResult } as unknown as ToolkitAPI;
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  const gerar = await screen.findByRole('button', { name: 'Gerar planilha FERRO' });
+  await waitFor(() => expect((gerar as HTMLButtonElement).disabled).toBe(false));
+  await userEvent.click(gerar);
+  expect(ferros).toHaveBeenCalledWith(expect.objectContaining({ acao: 'exportar', caminho: 'C:\\obra\\prancha.dwg' }));
+  await userEvent.click(await screen.findByRole('button', { name: /Abrir prancha - FERRO\.xlsx/ }));
+  expect(openResult).toHaveBeenCalledWith('C:\\obra\\prancha - FERRO.xlsx', false);
+});
