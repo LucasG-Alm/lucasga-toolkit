@@ -1,9 +1,9 @@
 import React from 'react';
 import { afterEach, expect, test, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FerrosPanel } from './FerrosPanel';
-import type { FerrosPedido, ToolkitAPI } from '../../shared/contracts';
+import type { FerrosPedido, FerrosProgresso, ToolkitAPI } from '../../shared/contracts';
 
 afterEach(() => { cleanup(); localStorage.clear(); });
 
@@ -171,4 +171,21 @@ test('arrastar linha muda a ordem e desliga a ordenação (R-FER-UI-005)', async
   fireEvent.dragStart(screen.getByLabelText('Arrastar A2')); fireEvent.dragOver(screen.getByRole('row', { name: /2x4N11/ })); fireEvent.drop(screen.getByRole('row', { name: /2x4N11/ }));
   await waitFor(() => expect(ultimaOrdem()).toEqual(['A2', 'A1']));
   expect(within(grade).queryByText('▼')).toBeNull();
+});
+
+test('progresso da leitura aparece no lugar da tabela (R-FER-UI-006)', async () => {
+  let emitir: (d: FerrosProgresso) => void = () => {};
+  let soltar: (v: unknown) => void = () => {};
+  const ferros = vi.fn((p: FerrosPedido) => p.acao === 'ler' ? new Promise(r => { soltar = r; }) : Promise.resolve({ lista: [], resumo: [], total: 0, avisos: [] }));
+  const api = { ferros, onFerrosProgresso: (l: (d: FerrosProgresso) => void) => { emitir = l; return () => {}; } } as unknown as ToolkitAPI;
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
+  act(() => emitir({ fase: 'selecao', i: 0, n: 0 }));
+  expect(screen.getByRole('progressbar').textContent).toContain('Aguardando seleção no AutoCAD');
+  act(() => emitir({ fase: 'lendo', i: 64, n: 128 }));
+  expect(screen.getByRole('progressbar').textContent).toContain('Lendo 64/128 objetos (50%)');
+  expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('50');
+  await act(async () => { soltar(lido); });
+  await waitFor(() => expect(screen.queryByRole('progressbar')).toBeNull());
+  expect(screen.getByText('2x4N11 Ø12.5 c=391')).toBeTruthy();
 });

@@ -75,8 +75,10 @@ export interface FerrosResposta {
   desenho?: FerrosDesenho; grade?: FerrosGrade; avisos?: string[]; cancelado?: boolean;
   lista?: FerrosItemLista[]; resumo?: FerrosItemResumo[]; total?: number; bloqueado?: string; arquivo?: string;
 }
+export interface FerrosProgresso { fase: 'selecao' | 'lendo' | 'calculando'; i: number; n: number }
 export interface ToolkitAPI {
   ferros(pedido: FerrosPedido): Promise<FerrosResposta>;
+  onFerrosProgresso(listener: (dado: FerrosProgresso) => void): () => void;
   catalog(): Promise<Tool[]>;
   scan(paths: string[], recursive: boolean): Promise<{ files: InputFile[]; warnings: string[] }>;
   pick(kind: 'files' | 'folder' | 'executable' | 'env'): Promise<string[]>;

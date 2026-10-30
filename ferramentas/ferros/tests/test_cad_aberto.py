@@ -89,3 +89,14 @@ def test_le_text_mtext_e_bloco_do_desenho_ativo(desenho_temporario):
     dentro = lidos["N7 Ø8 c=100"]
     assert (round(dentro.x, 6), round(dentro.y, 6)) == (12.0, 20.0)
     assert ms.Count == antes
+
+
+class _Linha:
+    ObjectName = "AcDbLine"
+
+
+def test_progresso_conta_cada_objeto_lido():
+    """R-FER-UI-006: o avanço conta todo objeto da seleção, mesmo o que não é texto."""
+    chamadas = []
+    assert cad_aberto.textos_de(None, [_Linha(), _Linha(), _Linha()], progresso=lambda *a: chamadas.append(a)) == []
+    assert chamadas == [("lendo", 1, 3), ("lendo", 2, 3), ("lendo", 3, 3)]

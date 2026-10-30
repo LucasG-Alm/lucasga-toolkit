@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { LocateFixed } from 'lucide-react';
 import { Button } from './ui/button';
-import type { FerrosDesenho, FerrosGrade, FerrosLinha, FerrosResposta, ToolkitAPI } from '../../shared/contracts';
+import type { FerrosDesenho, FerrosGrade, FerrosLinha, FerrosProgresso, FerrosResposta, ToolkitAPI } from '../../shared/contracts';
 import { useTabela, type Coluna } from './tabela/Tabela';
 import { ordenar } from './tabela/nucleo';
 import './ferros-panel.css';
@@ -51,6 +51,17 @@ function Campo({ label, valor, falta, onSalvar, largura = 'w-16', campo, linha }
     onChange={e => setTexto(e.target.value)} onBlur={() => { if (texto !== (valor === null ? '' : String(valor))) onSalvar(texto); }} />;
 }
 
+// R-FER-UI-006: no lugar da tabela enquanto o AutoCAD é lido.
+function Progresso({ dado }: { dado: FerrosProgresso | null }) {
+  const pct = dado?.fase === 'lendo' && dado.n ? Math.round(dado.i / dado.n * 100) : undefined;
+  const texto = !dado ? 'Conectando ao AutoCAD…' : dado.fase === 'selecao' ? 'Aguardando seleção no AutoCAD… (selecione e tecle Enter)'
+    : dado.fase === 'lendo' ? `Lendo ${dado.i}/${dado.n} objetos (${pct}%)` : 'Calculando…';
+  return <div className="ferros-progresso" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+    <span>{texto}</span>
+    <div className="ferros-progresso-trilho"><div className={pct === undefined ? 'ferros-progresso-indeterminado' : 'ferros-progresso-barra'} style={pct === undefined ? undefined : { width: `${pct}%` }} /></div>
+  </div>;
+}
+
 export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: unknown): void }) {
   const [desenho, setDesenho] = useState<FerrosDesenho | null>(null);
   const [grade, setGrade] = useState<FerrosGrade | null>(null);
@@ -62,6 +73,8 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
   const [lendo, setLendo] = useState(false);
   const [planilha, setPlanilha] = useState<string | null>(null);
   const [arrastando, setArrastando] = useState<string | null>(null);
+  const [progresso, setProgresso] = useState<FerrosProgresso | null>(null);
+  useEffect(() => api.onFerrosProgresso?.(setProgresso), [api]);
   const linhas = useMemo(() => grade?.linhas.map(l => ({ ...l, mult: grade.multiplicadores[String(l.numero)] ?? 1 })) ?? SEM_ITENS, [grade]);
   const tGrade = useTabela(linhas, COLS_GRADE);
   const tLista = useTabela(calculo.lista ?? SEM_ITENS, COLS_LISTA);
@@ -77,16 +90,17 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
   }
   // R-FER-SEL-001..004: nova substitui; adicionar/remover juntam no Python com a grade atual.
   async function ler(modo: 'nova' | 'adicionar' | 'remover') {
-    setLendo(true);
+    setLendo(true); setProgresso(null);
     try {
       const r = await api.ferros(modo === 'nova' || !grade ? { acao: 'ler', modo: 'nova' }
         : { acao: 'ler', modo, grade, caminho: desenho?.caminho ?? null, elemento: elementoSelecao.trim() || undefined });
       if (r.bloqueado) { setAvisos([r.bloqueado]); return; }
       if (r.cancelado || !r.grade) return;
       if (modo === 'nova') { setDesenho(r.desenho ?? null); setMarcadas(new Set()); setPlanilha(null); }
+      setProgresso({ fase: 'calculando', i: 0, n: 0 });
       await atualizar(r.grade, r.desenho ?? null);
       setAvisos(old => [...(r.avisos ?? []), ...old]);
-    } catch (erro) { onError(erro); } finally { setLendo(false); }
+    } catch (erro) { onError(erro); } finally { setLendo(false); setProgresso(null); }
   }
   // R-FER-UI-005: com ordenação ativa, a ordem da tela (da grade inteira) vira a manual antes de mover.
   function mover(de: string | null, para: string) {
@@ -148,7 +162,8 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
       <span className="ferros-desenho">{desenho ? `AutoCAD: ${desenho.nome}${desenho.caminho ? '' : ' (nunca salvo)'}` : 'Selecione os textos no AutoCAD (ou leia e selecione lá).'}</span>
     </div>
     {avisos.map((a, i) => <div className="warnings" key={i}>{a}</div>)}
-    {grade && <>
+    {lendo && <Progresso dado={progresso} />}
+    {grade && !lendo && <>
       <table className="ferros-tabela">
         <thead><tr><th></th>{tGrade.cabecalho}<th></th></tr></thead>
         <tbody>{tGrade.visiveis.map((l, i) => <tr key={l.handle} data-difere={l.difere} data-arrastando={arrastando === l.handle}

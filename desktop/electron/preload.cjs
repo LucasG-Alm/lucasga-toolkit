@@ -3,6 +3,11 @@ const invoke = (channel, ...args) => ipcRenderer.invoke('toolkit:' + channel, ..
 contextBridge.exposeInMainWorld('toolkit', {
   catalog: () => invoke('catalog'),
   ferros: pedido => invoke('ferros', pedido),
+  onFerrosProgresso: listener => {
+    const handler = (_event, dado) => listener(dado);
+    ipcRenderer.on('toolkit:ferros-progresso', handler);
+    return () => ipcRenderer.removeListener('toolkit:ferros-progresso', handler);
+  },
   scan: (paths, recursive) => invoke('scan', paths, recursive),
   pick: kind => invoke('pick', kind),
   pathsForFiles: files => files.map(file => webUtils.getPathForFile(file)).filter(Boolean),

@@ -101,6 +101,7 @@ Sem tabela dinâmica: o resumo por posição é feito com fórmula. Não precisa
 | R-FER-UI-002 | Números: coluna centralizada, dígitos alinhados à direita entre si (fonte tabular). |
 | R-FER-UI-003 | Cabeçalhos em negrito; linha de total em negrito + itálico com borda dupla em cima. |
 | R-FER-UI-005 | As linhas da grade podem ser arrastadas (pela alça ⠿, para não atrapalhar os campos) para qualquer posição; com ordenação ativa, a ordem da tela vira a manual antes do movimento. |
+| R-FER-UI-006 | Durante a leitura, no lugar da tabela: "Aguardando seleção no AutoCAD…" (sem %), depois "Lendo i/n objetos (p%)" com barra, depois "Calculando…". O Python manda o avanço como linhas `@@FERROS_PROGRESSO@@{json}`. |
 | R-FER-UI-004 | Enter num campo da grade salva e leva ao mesmo campo da próxima linha visível; na última linha, salva (e o cálculo roda). |
 
 ## Etapa 2 — Plotar tabela (pendente)

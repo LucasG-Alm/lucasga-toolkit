@@ -23,6 +23,7 @@ const notice = (message: string) => { document.getElementById('preview-notice')!
 const api: ToolkitAPI = {
   catalog: async () => visibleTools as Tool[],
   ferros: async () => { throw Error('Prévia visual: sem AutoCAD.'); },
+  onFerrosProgresso: () => () => {},
   pick: async kind => kind === 'folder' ? ['Exemplos'] : kind === 'files' ? names.map(name => `Exemplos/${name}`) : [],
   pathsForFiles: files => files.map(file => `Exemplos/${file.name}`),
   scan: async (_paths, recursive) => ({

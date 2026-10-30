@@ -11,6 +11,7 @@ import { prepareJobs, runBridge, selectedSecrets, redact, batchRuntimeOptions } 
 import { MapService } from './maps.mjs';
 import { LocationService, locationURL, validateExportRequest, resolveLocationRuntime, exportPointsWithDialog } from './location.mjs';
 import { SessionGoogleKey } from './credentials.mjs';
+import { progressoFerros } from './ferros.mjs';
 
 protocol.registerSchemesAsPrivileged([{scheme:'toolkit-map', privileges:{standard:true,secure:true,supportFetchAPI:true}}]);
 
@@ -209,7 +210,8 @@ function registerHandlers() {
     const required = tools.find(t => t.id === 'ferros').requirements;
     const runtime = await resolveRuntime(settings, required);
     if (!runtime.python || runtime.missing.length) throw Error(`Confira Python e as bibliotecas ${runtime.missing.length ? runtime.missing.join(', ') : required.join(', ')} em Configurações.`);
-    const resposta = (await runBridge(runtime.python, bridge, { tool: 'ferros', pedido }, () => {})).ferros;
+    const avanco = linha => { const dado = progressoFerros(linha); if (dado) window?.webContents.send('toolkit:ferros-progresso', dado); };
+    const resposta = (await runBridge(runtime.python, bridge, { tool: 'ferros', pedido }, avanco)).ferros;
     if (resposta?.desenho) desenhoFerros = resposta.desenho.caminho;
     if (resposta?.arquivo) results.add(path.resolve(resposta.arquivo));
     return resposta;

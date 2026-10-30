@@ -106,3 +106,11 @@ def test_remover_selecionados():
     base = _g(("A1", "3N2 Ø10 c=100"), ("A2", "N1 Ø abc"), ("A3", "1N3 Ø8 c=50"))
     g = juntar_selecao(base, _g(("A1", "3N2 Ø10 c=100"), ("A2", "N1 Ø abc")), "remover", None)
     assert [l.handle for l in g.linhas] == ["A3"] and g.nao_entendi == []
+
+
+def test_progresso_vai_numa_linha_marcada(capsys):
+    """R-FER-UI-006"""
+    from cotador.pagina import progresso
+
+    progresso("lendo", 3, 10)
+    assert capsys.readouterr().out == '@@FERROS_PROGRESSO@@{"fase": "lendo", "i": 3, "n": 10}\n'

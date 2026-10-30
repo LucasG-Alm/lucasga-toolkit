@@ -16,3 +16,8 @@
 @media (max-width: 900px) { .ferros-resultado { grid-template-columns: 1fr; } }
 .ferros-alca { cursor: grab; padding-right: 6px; color: var(--muted-foreground, #888); user-select: none; }
 .ferros-tabela tr[data-arrastando="true"] { opacity: .45; }
+.ferros-progresso { display: flex; flex-direction: column; gap: 8px; padding: 24px 0; font-size: 14px; }
+.ferros-progresso-trilho { height: 6px; border-radius: 3px; background: color-mix(in srgb, currentColor 12%, transparent); overflow: hidden; }
+.ferros-progresso-barra { height: 100%; background: var(--primary, #e8833a); transition: width .2s; }
+.ferros-progresso-indeterminado { height: 100%; width: 30%; background: var(--primary, #e8833a); animation: ferros-vai 1.2s ease-in-out infinite; }
+@keyframes ferros-vai { from { transform: translateX(-100%); } to { transform: translateX(350%); } }

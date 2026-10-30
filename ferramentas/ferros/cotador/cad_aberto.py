@@ -85,10 +85,16 @@ def _texto(ent) -> str | None:
     return None
 
 
-def textos_de(doc, entidades: Iterable) -> list[TextoLido]:
-    """R-FER-CAD-005: TEXT, MTEXT e os textos de dentro dos blocos inseridos."""
+def textos_de(doc, entidades: Iterable, progresso: Callable | None = None) -> list[TextoLido]:
+    """R-FER-CAD-005: TEXT, MTEXT e os textos de dentro dos blocos inseridos.
+
+    `progresso(fase, i, n)` e chamado a cada objeto (R-FER-UI-006).
+    """
     lidos = []
-    for ent in entidades:
+    entidades = list(entidades)
+    for i, ent in enumerate(entidades, start=1):
+        if progresso:
+            progresso("lendo", i, len(entidades))
         texto = _texto(ent)
         if texto is not None:
             p = ent.InsertionPoint
@@ -117,7 +123,7 @@ def _para_frente(app) -> None:
         pass  # Windows pode negar o foco; o pedido de selecao aparece mesmo assim
 
 
-def ler(app) -> tuple[InfoDesenho, list[TextoLido]] | None:
+def ler(app, progresso: Callable | None = None) -> tuple[InfoDesenho, list[TextoLido]] | None:
     """R-FER-CAD-004: a selecao ativa, ou pede uma. None = cancelado (Esc)."""
     import pythoncom
     import win32com.client
@@ -132,6 +138,8 @@ def ler(app) -> tuple[InfoDesenho, list[TextoLido]] | None:
         except Exception:
             pass
         selecao = doc.SelectionSets.Add(nome)
+        if progresso:
+            progresso("selecao", 0, 0)
         _para_frente(app)
         doc.Utility.Prompt("\nSelecione os objetos e tecle Enter (Esc cancela).\n")
         tipos = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_I2, [0])
@@ -142,7 +150,7 @@ def ler(app) -> tuple[InfoDesenho, list[TextoLido]] | None:
             return None
         if selecao.Count == 0:
             return None
-    return info, textos_de(doc, list(selecao))
+    return info, textos_de(doc, list(selecao), progresso)
 
 
 def zoom(app, x: float, y: float, altura: float = 2.0) -> None:

@@ -3,6 +3,7 @@
 Acoes: ler (AutoCAD), zoom (AutoCAD), calcular, gravar (memoria ao lado do DWG), exportar (planilha FERRO).
 """
 
+import json
 from pathlib import Path
 
 from cotador.grade import Bloqueado, Grade, Linha, TextoNaoEntendido, gravar_memoria, lista_da_grade, montar_grade, ler_memoria
@@ -39,6 +40,20 @@ def grade_de_json(dados: dict) -> Grade:
     nao = [TextoNaoEntendido(n["handle"], n["texto"], n["x"], n["y"]) for n in dados.get("nao_entendi", [])]
     mult = {int(k): int(v) for k, v in dados.get("multiplicadores", {}).items() if int(v) != 1}
     return Grade(linhas, nao, mult)
+
+
+PROGRESSO = "@@FERROS_PROGRESSO@@"
+
+
+def progresso(fase: str, i: int = 0, n: int = 0) -> None:
+    """R-FER-UI-006: o Electron le esta linha do stdout e repassa para a tela."""
+    print(PROGRESSO + json.dumps({"fase": fase, "i": i, "n": n}), flush=True)
+
+
+def _avanco(fase: str, i: int, n: int) -> None:
+    # ~50 linhas por leitura bastam para a barra; mais que isso so enche o pipe
+    if fase != "lendo" or i == n or i % max(1, n // 50) == 0:
+        progresso(fase, i, n)
 
 
 def juntar_selecao(grade: Grade, nova: Grade, modo: str, elemento: str | None) -> Grade:
@@ -104,7 +119,7 @@ def executar(pedido: dict) -> dict:
 
     app = cad_aberto.conectar()
     if acao == "ler":
-        lido = cad_aberto.ler(app)
+        lido = cad_aberto.ler(app, _avanco)
         if lido is None:
             return {"cancelado": True}
         info, textos = lido
