@@ -30,6 +30,15 @@ Etapas: **1 Contar** (ler + grade + Excel FERRO) → **2 Plotar tabela** → **3
 
 ## Etapa 1 — Contar
 
+### Seleção (`pagina.juntar_selecao`)
+
+| ID | Regra |
+|----|-------|
+| R-FER-SEL-001 | Nova seleção (limpa): substitui a grade inteira. |
+| R-FER-SEL-002 | Adicionar seleção: acrescenta o que ainda não está na grade (mesmo handle não duplica); com "Elemento da seleção" preenchido, as linhas novas entram com ele. |
+| R-FER-SEL-003 | Remover selecionados: tira da grade o que for selecionado no AutoCAD. Remover marcadas: tira as linhas marcadas no checkbox. |
+| R-FER-SEL-004 | Adicionar ou remover com outro desenho ativo que não o da grade: bloqueia e pede nova seleção. |
+
 ### Tags (`lista.analisar_tag`, `lista.classificar`)
 
 | ID | Regra |

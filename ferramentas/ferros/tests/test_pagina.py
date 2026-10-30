@@ -74,3 +74,35 @@ def test_exportar_gera_a_planilha_ao_lado_do_dwg(tmp_path):
     assert r == {"arquivo": str(tmp_path / "p - FERRO.xlsx")}
     assert "N1" in executar({"acao": "exportar", "grade": grade_json("3 N1 c/10"), "caminho": str(dwg)})["bloqueado"]
     assert "Salve" in executar({"acao": "exportar", "grade": grade_json("1N1 Ø10 c=100"), "caminho": None})["bloqueado"]
+
+
+from cotador.pagina import juntar_selecao  # noqa: E402
+
+
+def _g(*pares):
+    return montar_grade([TextoLido(h, t, "L", 0.0, 0.0) for h, t in pares])
+
+
+def test_nova_selecao_substitui():
+    """R-FER-SEL-001"""
+    g = juntar_selecao(_g(("A1", "3N2 Ø10 c=100")), _g(("A9", "1N3 Ø8 c=50")), "nova", None)
+    assert [l.handle for l in g.linhas] == ["A9"]
+
+
+def test_adicionar_sem_duplicar_e_com_elemento():
+    """R-FER-SEL-002"""
+    base = _g(("A1", "3N2 Ø10 c=100"))
+    base.multiplicadores[2] = 6
+    nova = _g(("A1", "3N2 Ø10 c=100"), ("A2", "N1 Ø abc"), ("A3", "1N3 Ø8 c=50"))
+    g = juntar_selecao(base, nova, "adicionar", "TAMPA")
+    assert [l.handle for l in g.linhas] == ["A1", "A3"]
+    assert (g.linhas[0].elemento, g.linhas[1].elemento) == ("L", "TAMPA")
+    assert [n.handle for n in g.nao_entendi] == ["A2"]
+    assert g.multiplicadores == {2: 6}
+
+
+def test_remover_selecionados():
+    """R-FER-SEL-003"""
+    base = _g(("A1", "3N2 Ø10 c=100"), ("A2", "N1 Ø abc"), ("A3", "1N3 Ø8 c=50"))
+    g = juntar_selecao(base, _g(("A1", "3N2 Ø10 c=100"), ("A2", "N1 Ø abc")), "remover", None)
+    assert [l.handle for l in g.linhas] == ["A3"] and g.nao_entendi == []

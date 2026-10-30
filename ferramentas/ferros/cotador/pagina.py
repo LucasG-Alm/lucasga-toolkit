@@ -41,6 +41,23 @@ def grade_de_json(dados: dict) -> Grade:
     return Grade(linhas, nao, mult)
 
 
+def juntar_selecao(grade: Grade, nova: Grade, modo: str, elemento: str | None) -> Grade:
+    """R-FER-SEL-001..003: nova substitui, adicionar acrescenta sem duplicar, remover tira."""
+    if modo == "nova":
+        return nova
+    if modo == "remover":
+        fora = {l.handle for l in nova.linhas} | {n.handle for n in nova.nao_entendi}
+        return Grade([l for l in grade.linhas if l.handle not in fora],
+                     [n for n in grade.nao_entendi if n.handle not in fora], dict(grade.multiplicadores))
+    tem = {l.handle for l in grade.linhas} | {n.handle for n in grade.nao_entendi}
+    novas = [l for l in nova.linhas if l.handle not in tem]
+    if elemento:
+        for l in novas:
+            l.elemento = elemento
+    return Grade(grade.linhas + novas, grade.nao_entendi + [n for n in nova.nao_entendi if n.handle not in tem],
+                 dict(grade.multiplicadores))
+
+
 def _tabela_peso(peso: dict | None) -> dict[float, float]:
     return {**PESO_POR_M, **{float(k): float(v) for k, v in (peso or {}).items()}}
 
@@ -91,10 +108,15 @@ def executar(pedido: dict) -> dict:
         if lido is None:
             return {"cancelado": True}
         info, textos = lido
+        modo = pedido.get("modo", "nova")
+        caminho = str(info.caminho) if info.caminho else None
+        if modo != "nova" and pedido.get("caminho") != caminho:
+            return {"bloqueado": "Desenho diferente do lido: faça uma nova seleção."}  # R-FER-SEL-004
         avisos = [] if info.caminho else ["Desenho nunca salvo: a página não vai lembrar o que foi preenchido."]
-        grade = montar_grade(textos, ler_memoria(info.caminho))
-        return {"desenho": {"nome": info.nome, "caminho": str(info.caminho) if info.caminho else None},
-                "grade": grade_para_json(grade), "avisos": avisos}
+        nova = montar_grade(textos, ler_memoria(info.caminho))
+        if modo != "nova":
+            nova = juntar_selecao(grade_de_json(pedido["grade"]), nova, modo, pedido.get("elemento"))
+        return {"desenho": {"nome": info.nome, "caminho": caminho}, "grade": grade_para_json(nova), "avisos": avisos}
     if acao == "desenho":
         info = cad_aberto.desenho_ativo(app)
         return {"desenho": {"nome": info.nome, "caminho": str(info.caminho) if info.caminho else None}}

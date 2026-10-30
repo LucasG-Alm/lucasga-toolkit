@@ -57,6 +57,7 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
   const [avisos, setAvisos] = useState<string[]>([]);
   const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
   const [elementoLote, setElementoLote] = useState('');
+  const [elementoSelecao, setElementoSelecao] = useState('');
   const [lendo, setLendo] = useState(false);
   const [planilha, setPlanilha] = useState<string | null>(null);
   const linhas = useMemo(() => grade?.linhas.map(l => ({ ...l, mult: grade.multiplicadores[String(l.numero)] ?? 1 })) ?? SEM_ITENS, [grade]);
@@ -72,15 +73,23 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
       setAvisos(gravado.avisos ?? []);
     } catch (erro) { onError(erro); }
   }
-  async function ler() {
+  // R-FER-SEL-001..004: nova substitui; adicionar/remover juntam no Python com a grade atual.
+  async function ler(modo: 'nova' | 'adicionar' | 'remover') {
     setLendo(true);
     try {
-      const r = await api.ferros({ acao: 'ler' });
+      const r = await api.ferros(modo === 'nova' || !grade ? { acao: 'ler', modo: 'nova' }
+        : { acao: 'ler', modo, grade, caminho: desenho?.caminho ?? null, elemento: elementoSelecao.trim() || undefined });
+      if (r.bloqueado) { setAvisos([r.bloqueado]); return; }
       if (r.cancelado || !r.grade) return;
-      setDesenho(r.desenho ?? null); setMarcadas(new Set()); setPlanilha(null);
+      if (modo === 'nova') { setDesenho(r.desenho ?? null); setMarcadas(new Set()); setPlanilha(null); }
       await atualizar(r.grade, r.desenho ?? null);
       setAvisos(old => [...(r.avisos ?? []), ...old]);
     } catch (erro) { onError(erro); } finally { setLendo(false); }
+  }
+  function removerMarcadas() {
+    if (!grade || !marcadas.size) return;
+    void atualizar({ ...grade, linhas: grade.linhas.filter(l => !marcadas.has(l.handle)) });
+    setMarcadas(new Set());
   }
   function mudarLinha(handle: string, mudanca: Partial<FerrosLinha>) {
     if (!grade) return;
@@ -117,7 +126,10 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
 
   return <section className="ferros-panel">
     <div className="ferros-barra">
-      <Button onClick={() => void ler()} disabled={lendo}>{lendo ? 'Selecione no AutoCAD…' : 'Ler do AutoCAD'}</Button>
+      <Button onClick={() => void ler('nova')} disabled={lendo}>Nova seleção (limpa)</Button>
+      <Button variant="outline" onClick={() => void ler('adicionar')} disabled={lendo || !grade}>Adicionar seleção</Button>
+      <Button variant="outline" onClick={() => void ler('remover')} disabled={lendo || !grade}>Remover selecionados (AutoCAD)</Button>
+      <input aria-label="Elemento da seleção" className="ferros-campo w-40" placeholder="Elemento da seleção" value={elementoSelecao} onChange={e => setElementoSelecao(e.target.value)} />
       <span className="ferros-desenho">{desenho ? `AutoCAD: ${desenho.nome}${desenho.caminho ? '' : ' (nunca salvo)'}` : 'Selecione os textos no AutoCAD (ou leia e selecione lá).'}</span>
     </div>
     {avisos.map((a, i) => <div className="warnings" key={i}>{a}</div>)}
@@ -140,6 +152,7 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
       <div className="ferros-lote">
         <input aria-label="Elemento para as marcadas" className="ferros-campo w-40" placeholder="Elemento (ex.: ADUELA)" value={elementoLote} onChange={e => setElementoLote(e.target.value)} />
         <Button size="sm" variant="outline" disabled={!marcadas.size || !elementoLote.trim()} onClick={aplicarElemento}>Aplicar às {marcadas.size} marcadas</Button>
+        <Button size="sm" variant="ghost" disabled={!marcadas.size} onClick={removerMarcadas}>Remover marcadas</Button>
       </div>
 
       {calculo.bloqueado && <div className="error" role="status">{calculo.bloqueado}</div>}

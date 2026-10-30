@@ -21,7 +21,7 @@ function setup(responder: (p: FerrosPedido) => unknown) {
 test('ler do AutoCAD mostra o desenho, a grade e o que falta em vermelho', async () => {
   const { api } = setup(p => p.acao === 'ler' ? lido : { bloqueado: 'preencha bitola/comprimento de: N1' });
   render(<FerrosPanel api={api} onError={() => {}} />);
-  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
   expect(await screen.findByText(/prancha\.dwg/)).toBeTruthy();
   const vermelha = screen.getByRole('row', { name: /3 N1 c\/10/ });
   expect(within(vermelha).getByLabelText('Ø de A2').getAttribute('data-falta')).toBe('true');
@@ -32,7 +32,7 @@ test('ler do AutoCAD mostra o desenho, a grade e o que falta em vermelho', async
 test('completar o campo recalcula e grava a memória', async () => {
   const { api, ferros } = setup(p => p.acao === 'ler' ? lido : p.acao === 'calcular' ? { lista: [], resumo: [], total: 123.45 } : { avisos: [] });
   render(<FerrosPanel api={api} onError={() => {}} />);
-  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
   const campo = await screen.findByLabelText('Ø de A2');
   await userEvent.type(campo, '8'); await userEvent.tab();
   await waitFor(() => expect(within(screen.getByRole('row', { name: /^Total/ })).getByText('123,45')).toBeTruthy());
@@ -44,7 +44,7 @@ test('completar o campo recalcula e grava a memória', async () => {
 test('multiplicador vale para a posição inteira', async () => {
   const { api, ferros } = setup(p => p.acao === 'ler' ? lido : p.acao === 'calcular' ? { lista: [], resumo: [], total: 0 } : { avisos: [] });
   render(<FerrosPanel api={api} onError={() => {}} />);
-  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
   const mult = await screen.findByLabelText('× de A1');
   await userEvent.clear(mult); await userEvent.type(mult, '6'); await userEvent.tab();
   await waitFor(() => expect(ferros.mock.calls.some(c => c[0].acao === 'calcular' && c[0].grade!.multiplicadores['11'] === 6)).toBe(true));
@@ -53,7 +53,7 @@ test('multiplicador vale para a posição inteira', async () => {
 test('zoom no texto não entendido vai para o AutoCAD', async () => {
   const { api, ferros } = setup(p => p.acao === 'ler' ? lido : {});
   render(<FerrosPanel api={api} onError={() => {}} />);
-  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
   await userEvent.click(await screen.findByRole('button', { name: 'Zoom em A3' }));
   expect(ferros).toHaveBeenCalledWith({ acao: 'zoom', x: 5, y: 6 });
 });
@@ -62,7 +62,7 @@ test('sem AutoCAD o erro aparece e nada é mostrado', async () => {
   const onError = vi.fn();
   const api = { ferros: vi.fn(async () => { throw Error('AutoCAD não encontrado: abra o AutoCAD com o desenho'); }) } as unknown as ToolkitAPI;
   render(<FerrosPanel api={api} onError={onError} />);
-  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
   await waitFor(() => expect(onError).toHaveBeenCalled());
   expect(screen.queryByRole('table')).toBeNull();
 });
@@ -72,7 +72,7 @@ test('gerar planilha FERRO e abrir o arquivo gerado', async () => {
   const ferros = vi.fn(async (p: FerrosPedido) => p.acao === 'ler' ? lido : p.acao === 'calcular' ? { lista: [], resumo: [], total: 1 } : p.acao === 'exportar' ? { arquivo: 'C:\\obra\\prancha - FERRO.xlsx' } : { avisos: [] });
   const api = { ferros, openResult } as unknown as ToolkitAPI;
   render(<FerrosPanel api={api} onError={() => {}} />);
-  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
   const gerar = await screen.findByRole('button', { name: 'Gerar planilha FERRO' });
   await waitFor(() => expect((gerar as HTMLButtonElement).disabled).toBe(false));
   await userEvent.click(gerar);
@@ -84,7 +84,7 @@ test('gerar planilha FERRO e abrir o arquivo gerado', async () => {
 test('título ordena e funil filtra a grade (R-FER-UI-001)', async () => {
   const { api } = setup(p => p.acao === 'ler' ? lido : { lista: [], resumo: [], total: 0, avisos: [] });
   render(<FerrosPanel api={api} onError={() => {}} />);
-  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
   await screen.findByText('2x4N11 Ø12.5 c=391');
   const grade = screen.getAllByRole('table')[0];
   const primeira = () => within(grade).getAllByRole('row')[1].textContent;
@@ -103,7 +103,7 @@ test('total em linha própria, números alinhados (R-FER-UI-002 / R-FER-UI-003)'
     ? { lista: [{ posicao: 'N11', bitola: 12.5, comprimento_unit_cm: 391, quantidade: 8, comprimento_total_cm: 3128, avisos: [] }],
         resumo: [{ bitola: 12.5, comprimento_m: 31.28, peso_por_m: 1, peso_kg: 31.28 }], total: 31.28 } : { avisos: [] });
   render(<FerrosPanel api={api} onError={() => {}} />);
-  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
   const total = await screen.findByRole('row', { name: /^Total/ });
   expect(total.className).toContain('ferros-total-linha');
   expect(screen.getByText('3128').closest('td')!.className).toContain('num');
@@ -112,7 +112,7 @@ test('total em linha própria, números alinhados (R-FER-UI-002 / R-FER-UI-003)'
 test('Enter salva e desce para o mesmo campo (R-FER-UI-004)', async () => {
   const { api, ferros } = setup(p => p.acao === 'ler' ? lido : { lista: [], resumo: [], total: 0, avisos: [] });
   render(<FerrosPanel api={api} onError={() => {}} />);
-  await userEvent.click(screen.getByRole('button', { name: 'Ler do AutoCAD' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
   const qtd1 = await screen.findByLabelText('Qtd de A1');
   await userEvent.clear(qtd1); await userEvent.type(qtd1, '9{Enter}');
   expect(document.activeElement).toBe(screen.getByLabelText('Qtd de A2'));
@@ -121,4 +121,37 @@ test('Enter salva e desce para o mesmo campo (R-FER-UI-004)', async () => {
   await userEvent.clear(qtd2); await userEvent.type(qtd2, '4{Enter}');
   expect(document.activeElement).not.toBe(qtd2);
   await waitFor(() => expect(ferros.mock.calls.some(c => c[0].acao === 'calcular' && c[0].grade!.linhas[1].quantidade === 4)).toBe(true));
+});
+
+test('adicionar seleção manda a grade, o desenho e o elemento (R-FER-SEL-002)', async () => {
+  const { api, ferros } = setup(p => p.acao === 'ler' ? lido : { lista: [], resumo: [], total: 0, avisos: [] });
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
+  await screen.findByText('2x4N11 Ø12.5 c=391');
+  await userEvent.type(screen.getByLabelText('Elemento da seleção'), 'TAMPA');
+  await userEvent.click(screen.getByRole('button', { name: 'Adicionar seleção' }));
+  await waitFor(() => expect(ferros).toHaveBeenCalledWith(expect.objectContaining({ acao: 'ler', modo: 'adicionar', caminho: 'C:\\obra\\prancha.dwg', elemento: 'TAMPA' })));
+  const pedido = ferros.mock.calls.map(c => c[0]).find(p => p.modo === 'adicionar')!;
+  expect(pedido.grade!.linhas).toHaveLength(2);
+});
+
+test('remover marcadas tira as linhas do checkbox (R-FER-SEL-003)', async () => {
+  const { api, ferros } = setup(p => p.acao === 'ler' ? lido : { lista: [], resumo: [], total: 0, avisos: [] });
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
+  await userEvent.click(await screen.findByLabelText('Marcar A1'));
+  await userEvent.click(screen.getByRole('button', { name: 'Remover marcadas' }));
+  expect(screen.queryByText('2x4N11 Ø12.5 c=391')).toBeNull();
+  await waitFor(() => expect(ferros.mock.calls.map(c => c[0]).filter(p => p.acao === 'calcular').pop()!.grade!.linhas.map(l => l.handle)).toEqual(['A2']));
+});
+
+test('outro desenho no meio bloqueia com aviso (R-FER-SEL-004)', async () => {
+  const { api } = setup(p => p.acao === 'ler' && p.modo === 'remover' ? { bloqueado: 'Desenho diferente do lido: faça uma nova seleção.' }
+    : p.acao === 'ler' ? lido : { lista: [], resumo: [], total: 0, avisos: [] });
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
+  await screen.findByText('2x4N11 Ø12.5 c=391');
+  await userEvent.click(screen.getByRole('button', { name: 'Remover selecionados (AutoCAD)' }));
+  expect(await screen.findByText(/Desenho diferente do lido/)).toBeTruthy();
+  expect(screen.getByText('2x4N11 Ø12.5 c=391')).toBeTruthy();
 });

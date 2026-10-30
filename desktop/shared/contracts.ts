@@ -67,6 +67,7 @@ export interface FerrosDesenho { nome: string; caminho: string | null }
 export interface FerrosPedido {
   acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar' | 'exportar';
   grade?: FerrosGrade; caminho?: string | null; x?: number; y?: number; peso?: Record<string, number>;
+  modo?: 'nova' | 'adicionar' | 'remover'; elemento?: string;
 }
 export interface FerrosItemLista { posicao: string; bitola: number; comprimento_unit_cm: number; quantidade: number; comprimento_total_cm: number; avisos: string[] }
 export interface FerrosItemResumo { bitola: number; comprimento_m: number; peso_por_m: number; peso_kg: number }
