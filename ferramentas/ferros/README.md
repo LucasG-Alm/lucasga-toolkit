@@ -4,14 +4,21 @@ Lógica do antigo repo `cotador-de-ferros` (migrado em 30/10/2026; o histórico 
 usada pela página **Contar ferros** do Desktop, que lê o desenho aberto no AutoCAD por COM.
 
 ```text
-selecionar no AutoCAD → [Ler do AutoCAD] → grade (vermelho = falta Ø ou c=) → completar
-→ LISTA DE FERROS + RESUMO CA-50 → (etapa 2) plotar tabela · (etapa 3) cotar ferros
+selecionar no AutoCAD → [Nova seleção (limpa)] → grade (vermelho = falta Ø ou c=) → completar
+   [Adicionar seleção] (com elemento) · [Remover selecionados] · [Remover marcadas]
+→ LISTA DE FERROS + RESUMO CA-50 → [Gerar planilha FERRO] → <DWG> - FERRO.xlsx
+→ (etapa 2) plotar tabela · (etapa 3) cotar ferros
 ```
 
+Na tela: cabeçalho estilo Excel em todas as tabelas (título ordena, funil filtra), Enter
+salva e desce, linhas arrastáveis pela alça ⠿ (a ordem vai para a planilha), barra de
+progresso da leitura. A planilha gerada só usa funções do **Excel 2007** (empresa usa 2007-2010).
+
 - `cotador/lista.py` — `classificar`: tag completa, incompleta, "Não entendi" ou ignorado.
-- `cotador/grade.py` — uma linha por tag, multiplicador por posição, memória `<nome>.ferros.json`.
-- `cotador/cad_aberto.py` — AutoCAD aberto: desenho ativo, seleção, textos (inclusive em bloco), zoom.
-- `cotador/pagina.py` — as ações que a página pede (`ler`, `zoom`, `calcular`, `gravar`).
+- `cotador/grade.py` — uma linha por tag, multiplicador por posição, memória `<nome>.ferros.json` (inclui a ordem manual).
+- `cotador/cad_aberto.py` — AutoCAD aberto: desenho ativo, seleção, textos (inclusive em bloco), zoom, progresso.
+- `cotador/pagina.py` — as ações que a página pede (`ler` nova/adicionar/remover, `zoom`, `calcular`, `gravar`, `exportar`).
+- `cotador/excel.py` — gera a planilha FERRO no tamanho exato (fórmulas da planilha de referência).
 
 Regras com ID em [COMPORTAMENTO.md](COMPORTAMENTO.md).
 
