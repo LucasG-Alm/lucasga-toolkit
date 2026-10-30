@@ -86,7 +86,7 @@ def test_total_em_negrito_italico_com_borda_dupla(tmp_path):
 
 ### Task 2: Núcleo da tabela (porte da Busca Unificada)
 
-**Files:** Create `desktop/src/components/tabela/nucleo.ts`, `desktop/src/components/tabela/nucleo.test.ts`
+**Files:** Create `desktop/src/components/tabela/nucleo.ts`, `desktop/src/components/tabela/nucleo.test.tsx`
 
 **Produces:**
 ```ts
