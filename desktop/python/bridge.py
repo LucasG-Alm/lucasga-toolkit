@@ -20,6 +20,9 @@ def load(root: Path, folder: str, name: str):
 
 def execute(request: dict, root: Path) -> dict:
     tool = request.get('tool')
+    if tool == 'ferros':
+        pagina = load(root, 'ferros', 'cotador.pagina')
+        return {'outputs': [], 'ferros': pagina.executar(request['pedido'])}
     if tool == 'localizacao':
         import location
         import geo

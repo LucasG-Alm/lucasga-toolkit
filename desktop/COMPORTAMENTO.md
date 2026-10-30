@@ -110,6 +110,7 @@ apresentada como Google. Entradas inválidas falham antes de criar o destino.
 
 - [Operação e dependências](README.md).
 - [Regras das ferramentas de documentação CAD](../ferramentas/proesplan/COMPORTAMENTO.md).
+- [Regras da página Ferros (AutoCAD aberto)](../ferramentas/ferros/COMPORTAMENTO.md): única página que conversa com o AutoCAD em uso, por COM; a memória só é gravada ao lado do desenho informado pelo próprio AutoCAD.
 - [Adaptador Python](python/bridge.py).
 
 Requisito registrado em 22/10/2026 por solicitação de Lucas.

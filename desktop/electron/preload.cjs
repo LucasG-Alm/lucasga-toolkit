@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 const invoke = (channel, ...args) => ipcRenderer.invoke('toolkit:' + channel, ...args);
 contextBridge.exposeInMainWorld('toolkit', {
   catalog: () => invoke('catalog'),
+  ferros: pedido => invoke('ferros', pedido),
   scan: (paths, recursive) => invoke('scan', paths, recursive),
   pick: kind => invoke('pick', kind),
   pathsForFiles: files => files.map(file => webUtils.getPathForFile(file)).filter(Boolean),

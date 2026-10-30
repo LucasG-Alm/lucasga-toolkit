@@ -1,0 +1,16 @@
+.ferros-panel { display: flex; flex-direction: column; gap: 12px; }
+.ferros-barra, .ferros-lote { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ferros-desenho { font-size: 13px; color: var(--muted-foreground, #666); }
+.ferros-tabela { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ferros-tabela caption { text-align: left; font-weight: 600; padding: 6px 0; }
+.ferros-tabela th, .ferros-tabela td { border-bottom: 1px solid var(--border, #ddd); padding: 4px 6px; text-align: left; }
+.ferros-tabela tr[data-difere="true"] td { background: color-mix(in srgb, orange 10%, transparent); }
+.ferros-campo { border: 1px solid var(--border, #ccc); border-radius: 4px; padding: 2px 4px; background: transparent; color: inherit; }
+.ferros-campo.w-12 { width: 3rem; } .ferros-campo.w-16 { width: 4rem; } .ferros-campo.w-40 { width: 10rem; }
+.ferros-campo[data-falta="true"] { border-color: #d33; background: color-mix(in srgb, #d33 12%, transparent); }
+.ferros-difere { color: #b45309; }
+.ferros-zoom { background: none; border: none; cursor: pointer; color: inherit; padding: 2px; }
+.ferros-resultado { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.ferros-total { font-weight: 600; }
+.ferros-nao-linha { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 2px 0; }
+@media (max-width: 900px) { .ferros-resultado { grid-template-columns: 1fr; } }

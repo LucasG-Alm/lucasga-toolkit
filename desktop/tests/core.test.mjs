@@ -94,7 +94,7 @@ test('ferramentas geográficas exigem seleção explícita e ciência de chamada
 });
 
 test('painel unificado substitui quatro entradas sem remover adaptadores antigos', () => {
-  assert.equal(visibleTools.length, 11);
+  assert.equal(visibleTools.length, 12); // + Contar ferros
   assert.ok(visibleTools.some(tool => tool.id === 'localizacao'));
   for (const id of ['converter', 'geocodificar', 'enderecos', 'altitude']) {
     assert.ok(tools.some(tool => tool.id === id));

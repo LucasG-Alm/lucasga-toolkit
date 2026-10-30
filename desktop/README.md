@@ -18,7 +18,8 @@ CAD pelo filtro amplo de recursos e não deve ser distribuído. A 0.4.1 exclui
 casos locais e arquivos de dados; os originais de trabalho foram preservados.
 O pacote inclui scripts e dicionário, mas requer Python 3.11+ e as bibliotecas
 indicadas em **Configurações → Salvar e verificar**. AutoCAD, ODA e QGIS são
-necessários conforme a ferramenta. Não é preciso manter o AutoCAD aberto.
+necessários conforme a ferramenta. Não é preciso manter o AutoCAD aberto, exceto em
+**Contar ferros**, que lê o desenho aberto no AutoCAD (COM, requer `pywin32`).
 
 ### Usar em outro computador
 

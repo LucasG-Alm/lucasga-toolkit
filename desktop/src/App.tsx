@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BookOpen, Box, ChevronRight, CircleCheck, FileCheck2, Grid2X2, Layers3, MapPinned, Search, Settings2, TerminalSquare, Wrench } from 'lucide-react';
+import { BookOpen, Box, Ruler, ChevronRight, CircleCheck, FileCheck2, Grid2X2, Layers3, MapPinned, Search, Settings2, TerminalSquare, Wrench } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +11,9 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { ManualInput } from './components/ManualInput';
 import { ThemeSwitch } from './components/ThemeSwitch';
 import { LocationPanel } from './components/LocationPanel';
+import { FerrosPanel } from './components/FerrosPanel';
 import type { Check, InputFile, QueueState, Tool, Values, Inspection } from '../shared/contracts';
-const icons: Record<string, typeof Wrench> = { ortografia: FileCheck2, aprender: BookOpen, dividir: Layers3, limpar: Wrench, galeria: MapPinned, modelos3d: Box, pts3d: TerminalSquare, malha: Grid2X2 };
+const icons: Record<string, typeof Wrench> = { ortografia: FileCheck2, aprender: BookOpen, dividir: Layers3, limpar: Wrench, galeria: MapPinned, modelos3d: Box, ferros: Ruler, pts3d: TerminalSquare, malha: Grid2X2 };
 const initialQueue: QueueState = { status: 'idle', stopRequested: false, jobs: [] };
 
 export default function App() {
@@ -114,12 +115,12 @@ export default function App() {
       <div className="topline">Toolkit<ChevronRight />{settingsOpen ? 'Configurações' : tool?.category}<ChevronRight />{settingsOpen ? 'Ambiente' : tool?.name}</div>
       <div className="page-head"><div><h1>{settingsOpen ? 'Configurações' : tool?.name || 'Carregando…'}</h1><p className="page-description">{settingsOpen ? 'Confira o ambiente que executa suas automações.' : tool?.description}</p></div>
         {!settingsOpen && toolId === 'localizacao' && <Button variant="outline" size="sm" onClick={()=>{setSettingsOpen(true);setError('');}}>API key Google</Button>}
-        {!settingsOpen && tool && toolId !== 'localizacao' && <Badge variant="outline" className="text-[10px] gap-1.5 py-1 text-muted-foreground font-normal shrink-0"><CircleCheck size={11} />{tool.manual ? 'Dentro do AutoCAD' : 'Execução local'}</Badge>}
+        {!settingsOpen && tool && toolId !== 'localizacao' && <Badge variant="outline" className="text-[10px] gap-1.5 py-1 text-muted-foreground font-normal shrink-0"><CircleCheck size={11} />{tool.id === 'ferros' ? 'AutoCAD aberto' : tool.manual ? 'Dentro do AutoCAD' : 'Execução local'}</Badge>}
       </div>
       {error && <div className="error" role="alert">{error}</div>}
       <div hidden={settingsOpen || toolId !== 'localizacao'}><LocationPanel api={api} queue={queue} onError={onError} active={toolId === 'localizacao' && !settingsOpen} /></div>
       {settingsOpen ? <SettingsPanel api={api} onError={onError} /> : tool && <>
-        {tool.id === 'localizacao' ? null : tool.manual ? <Card className="panel"><CardHeader><CardTitle>Usar no AutoCAD</CardTitle></CardHeader><CardContent className="manual">{tool.instructions}</CardContent></Card>
+        {tool.id === 'localizacao' ? null : tool.id === 'ferros' ? <FerrosPanel api={api} onError={onError} /> : tool.manual ? <Card className="panel"><CardHeader><CardTitle>Usar no AutoCAD</CardTitle></CardHeader><CardContent className="manual">{tool.instructions}</CardContent></Card>
           : <div className="workspace">
             <div><FileInputs api={api} extensions={tool.extensions} files={files} selected={selected} recursive={recursive} disabled={busy || scanning || inspecting}
               onPaths={newPaths => scan([...new Set([...paths, ...newPaths])])} onRecursive={include => { setRecursive(include); void scan(paths, include).catch(onError); }}
@@ -134,8 +135,8 @@ export default function App() {
               {checks.map(check => <div className="dependency" data-ok={check.ok} key={check.name}><CircleCheck /><div>{check.name}<small>{check.detail}</small></div></div>)}
             </div>
           </div>}
-        <Results state={queue} api={api} onError={onError} />
-        <p className="footer-note">Uma automação por vez. Cada resultado pode ser conferido antes da próxima etapa.</p>
+        {tool.id !== 'ferros' && <><Results state={queue} api={api} onError={onError} />
+        <p className="footer-note">Uma automação por vez. Cada resultado pode ser conferido antes da próxima etapa.</p></>}
       </>}
     </main>
   </div>;

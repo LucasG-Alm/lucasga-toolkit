@@ -26,6 +26,7 @@ function setup(state: QueueState = { status: 'idle', stopRequested: false, jobs:
     parseLocationText: async () => null,
     locationQuery: async () => ({ requests: { geocode: 0, elevation: 0 } }),
     openLocation: async () => {}, exportPoints: async () => [], readLocationResults: async () => [],
+    ferros: async () => ({}),
     mapInfo: async () => ({ available: false, attribution: '', maxZoom: 19, tiles: 0, sessions: 0 }),
   };
   window.toolkit = api;

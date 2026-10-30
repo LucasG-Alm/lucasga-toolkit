@@ -57,7 +57,25 @@ export interface LocationResult {
 export type MapProvider = 'osm' | 'esri' | 'google-road' | 'google-satellite';
 export interface MapBounds {north: number; south: number; east: number; west: number; zoom: number}
 export interface MapInfo {available: boolean; template?: string; attribution: string; maxZoom: number; message?: string; tiles: number; sessions: number}
+export interface FerrosLinha {
+  handle: string; layer: string; texto: string; posicao: string; numero: number;
+  bitola: number | null; comprimento_cm: number | null; quantidade: number; quantidade_desenho: number;
+  elemento: string; x: number; y: number; faltando: string[]; difere: boolean;
+}
+export interface FerrosGrade { linhas: FerrosLinha[]; nao_entendi: {handle: string; texto: string; x: number; y: number}[]; multiplicadores: Record<string, number> }
+export interface FerrosDesenho { nome: string; caminho: string | null }
+export interface FerrosPedido {
+  acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar';
+  grade?: FerrosGrade; caminho?: string | null; x?: number; y?: number; peso?: Record<string, number>;
+}
+export interface FerrosItemLista { posicao: string; bitola: number; comprimento_unit_cm: number; quantidade: number; comprimento_total_cm: number; avisos: string[] }
+export interface FerrosItemResumo { bitola: number; comprimento_m: number; peso_por_m: number; peso_kg: number }
+export interface FerrosResposta {
+  desenho?: FerrosDesenho; grade?: FerrosGrade; avisos?: string[]; cancelado?: boolean;
+  lista?: FerrosItemLista[]; resumo?: FerrosItemResumo[]; total?: number; bloqueado?: string;
+}
 export interface ToolkitAPI {
+  ferros(pedido: FerrosPedido): Promise<FerrosResposta>;
   catalog(): Promise<Tool[]>;
   scan(paths: string[], recursive: boolean): Promise<{ files: InputFile[]; warnings: string[] }>;
   pick(kind: 'files' | 'folder' | 'executable' | 'env'): Promise<string[]>;
