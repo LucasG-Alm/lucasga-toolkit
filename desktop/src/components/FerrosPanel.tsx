@@ -3,6 +3,7 @@ import { LocateFixed } from 'lucide-react';
 import { Button } from './ui/button';
 import type { FerrosDesenho, FerrosGrade, FerrosLinha, FerrosResposta, ToolkitAPI } from '../../shared/contracts';
 import { useTabela, type Coluna } from './tabela/Tabela';
+import { ordenar } from './tabela/nucleo';
 import './ferros-panel.css';
 
 const COLS_GRADE: Coluna[] = [
@@ -60,6 +61,7 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
   const [elementoSelecao, setElementoSelecao] = useState('');
   const [lendo, setLendo] = useState(false);
   const [planilha, setPlanilha] = useState<string | null>(null);
+  const [arrastando, setArrastando] = useState<string | null>(null);
   const linhas = useMemo(() => grade?.linhas.map(l => ({ ...l, mult: grade.multiplicadores[String(l.numero)] ?? 1 })) ?? SEM_ITENS, [grade]);
   const tGrade = useTabela(linhas, COLS_GRADE);
   const tLista = useTabela(calculo.lista ?? SEM_ITENS, COLS_LISTA);
@@ -85,6 +87,19 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
       await atualizar(r.grade, r.desenho ?? null);
       setAvisos(old => [...(r.avisos ?? []), ...old]);
     } catch (erro) { onError(erro); } finally { setLendo(false); }
+  }
+  // R-FER-UI-005: com ordenação ativa, a ordem da tela (da grade inteira) vira a manual antes de mover.
+  function mover(de: string | null, para: string) {
+    setArrastando(null);
+    if (!grade || !de || de === para) return;
+    const col = tGrade.ordem && COLS_GRADE.find(c => c.key === tGrade.ordem!.key);
+    const base = (tGrade.ordem && col ? ordenar(linhas, tGrade.ordem.key, tGrade.ordem.dir, col.tipo) : linhas).map(l => l.handle);
+    const origem = base.indexOf(de), alvo = base.indexOf(para);
+    base.splice(origem, 1);
+    base.splice(origem < alvo ? base.indexOf(para) + 1 : base.indexOf(para), 0, de);
+    const porHandle = new Map(grade.linhas.map(l => [l.handle, l]));
+    tGrade.setOrdem(null);
+    void atualizar({ ...grade, linhas: base.map(h => porHandle.get(h)!) });
   }
   function removerMarcadas() {
     if (!grade || !marcadas.size) return;
@@ -136,8 +151,10 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
     {grade && <>
       <table className="ferros-tabela">
         <thead><tr><th></th>{tGrade.cabecalho}<th></th></tr></thead>
-        <tbody>{tGrade.visiveis.map((l, i) => <tr key={l.handle} data-difere={l.difere}>
-          <td><input type="checkbox" aria-label={`Marcar ${l.handle}`} checked={marcadas.has(l.handle)} onChange={e => { const s = new Set(marcadas); if (e.target.checked) s.add(l.handle); else s.delete(l.handle); setMarcadas(s); }} /></td>
+        <tbody>{tGrade.visiveis.map((l, i) => <tr key={l.handle} data-difere={l.difere} data-arrastando={arrastando === l.handle}
+          onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); mover(arrastando, l.handle); }}>
+          <td><span className="ferros-alca" draggable aria-label={`Arrastar ${l.handle}`} title="Arraste para reordenar"
+            onDragStart={() => setArrastando(l.handle)} onDragEnd={() => setArrastando(null)}>⠿</span><input type="checkbox" aria-label={`Marcar ${l.handle}`} checked={marcadas.has(l.handle)} onChange={e => { const s = new Set(marcadas); if (e.target.checked) s.add(l.handle); else s.delete(l.handle); setMarcadas(s); }} /></td>
           <td>{l.texto}{l.difere && <small className="ferros-difere"> difere do desenho ({l.quantidade_desenho})</small>}</td>
           <td>{l.posicao}</td>
           <td className="num"><Campo campo="bitola" linha={i} label={`Ø de ${l.handle}`} valor={l.bitola} falta={l.bitola === null} onSalvar={t => mudarLinha(l.handle, { bitola: numero(t) })} /></td>

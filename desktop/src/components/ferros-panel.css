@@ -14,3 +14,5 @@
 .ferros-total { font-weight: 600; }
 .ferros-nao-linha { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 2px 0; }
 @media (max-width: 900px) { .ferros-resultado { grid-template-columns: 1fr; } }
+.ferros-alca { cursor: grab; padding-right: 6px; color: var(--muted-foreground, #888); user-select: none; }
+.ferros-tabela tr[data-arrastando="true"] { opacity: .45; }

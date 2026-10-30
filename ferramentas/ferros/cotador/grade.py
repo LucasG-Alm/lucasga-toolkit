@@ -82,6 +82,9 @@ def montar_grade(lidos: Sequence[TextoLido], memoria: Mapping | None = None) -> 
                 x=lido.x,
                 y=lido.y,
             ))
+    if memoria.get("ordem"):  # R-FER-MEM-004: ordem manual; tag nova (fora da lista) vai pro fim
+        posicao = {h: i for i, h in enumerate(memoria["ordem"])}
+        linhas.sort(key=lambda l: posicao.get(l.handle, len(posicao)))
     multiplicadores = {int(k): int(v) for k, v in memoria.get("multiplicadores", {}).items()}
     return Grade(linhas, nao_entendi, multiplicadores)
 
@@ -136,7 +139,8 @@ def gravar_memoria(dwg: Path | None, grade: Grade) -> list[str]:
     presentes = {l.handle for l in grade.linhas}
     sumiram = sorted(h for h in ler_memoria(dwg).get("tags", {}) if h not in presentes)
     _arquivo(dwg).write_text(json.dumps(
-        {"multiplicadores": {str(k): v for k, v in grade.multiplicadores.items() if v != 1}, "tags": tags},
+        {"multiplicadores": {str(k): v for k, v in grade.multiplicadores.items() if v != 1}, "tags": tags,
+         "ordem": [l.handle for l in grade.linhas]},
         ensure_ascii=False, indent=2), "utf-8")
     if sumiram:
         return [f"{len(sumiram)} tag(s) não estão mais no desenho e saíram da memória: {', '.join(sumiram)}"]

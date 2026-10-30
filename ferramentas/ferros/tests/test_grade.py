@@ -109,3 +109,14 @@ def test_planilha_mantem_espacamento_em_malha():
     """R-FER-XLS-002"""
     grade = montar_grade([lido("A1", "30N7 %%C8 C/30x30 c=28")])
     assert texto_para_planilha(grade.linhas[0], 1) == "30N7 ∅8 c/30x30 c=28"
+
+
+def test_ordem_manual_volta_da_memoria_e_nova_tag_vai_pro_fim(tmp_path):
+    """R-FER-MEM-004"""
+    dwg = tmp_path / "p.dwg"
+    textos = [lido("A1", "1N1 Ø10 c=100"), lido("A2", "1N2 Ø10 c=100"), lido("A3", "1N3 Ø10 c=100")]
+    g = montar_grade(textos)
+    g.linhas = [g.linhas[2], g.linhas[0], g.linhas[1]]
+    gravar_memoria(dwg, g)
+    nova = montar_grade([*textos, lido("A4", "1N4 Ø10 c=100")], ler_memoria(dwg))
+    assert [l.handle for l in nova.linhas] == ["A3", "A1", "A2", "A4"]

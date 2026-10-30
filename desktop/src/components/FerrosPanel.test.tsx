@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterEach, expect, test, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FerrosPanel } from './FerrosPanel';
 import type { FerrosPedido, ToolkitAPI } from '../../shared/contracts';
@@ -154,4 +154,21 @@ test('outro desenho no meio bloqueia com aviso (R-FER-SEL-004)', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Remover selecionados (AutoCAD)' }));
   expect(await screen.findByText(/Desenho diferente do lido/)).toBeTruthy();
   expect(screen.getByText('2x4N11 Ø12.5 c=391')).toBeTruthy();
+});
+
+test('arrastar linha muda a ordem e desliga a ordenação (R-FER-UI-005)', async () => {
+  const { api, ferros } = setup(p => p.acao === 'ler' ? lido : { lista: [], resumo: [], total: 0, avisos: [] });
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
+  const ultimaOrdem = () => ferros.mock.calls.map(c => c[0]).filter(p => p.acao === 'calcular').pop()!.grade!.linhas.map(l => l.handle);
+  const a1 = await screen.findByRole('row', { name: /2x4N11/ }), a2 = screen.getByRole('row', { name: /3 N1 c\/10/ });
+  fireEvent.dragStart(screen.getByLabelText('Arrastar A2')); fireEvent.dragOver(a1); fireEvent.drop(a1);
+  await waitFor(() => expect(ultimaOrdem()).toEqual(['A2', 'A1']));
+
+  const grade = screen.getAllByRole('table')[0];
+  await userEvent.click(within(grade).getByRole('button', { name: 'Ordenar por Pos' }));
+  await userEvent.click(within(grade).getByRole('button', { name: 'Ordenar por Pos' }));  // desc: N11, N1
+  fireEvent.dragStart(screen.getByLabelText('Arrastar A2')); fireEvent.dragOver(screen.getByRole('row', { name: /2x4N11/ })); fireEvent.drop(screen.getByRole('row', { name: /2x4N11/ }));
+  await waitFor(() => expect(ultimaOrdem()).toEqual(['A2', 'A1']));
+  expect(within(grade).queryByText('▼')).toBeNull();
 });
