@@ -103,3 +103,9 @@ def test_desenho_sem_caminho_nao_grava_memoria():
     grade = montar_grade([lido("A1", "3N2 Ø10 c=100")])
     assert gravar_memoria(None, grade) == ["Desenho nunca salvo: a página não vai lembrar o que foi preenchido."]
     assert ler_memoria(None) == {}
+
+
+def test_planilha_mantem_espacamento_em_malha():
+    """R-FER-XLS-002"""
+    grade = montar_grade([lido("A1", "30N7 %%C8 C/30x30 c=28")])
+    assert texto_para_planilha(grade.linhas[0], 1) == "30N7 ∅8 c/30x30 c=28"

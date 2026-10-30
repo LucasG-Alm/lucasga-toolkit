@@ -101,7 +101,7 @@ def texto_para_planilha(linha: Linha, fator: int) -> str:
     """Texto da coluna B: a planilha reconta pelo texto, entao tudo vai escrito nele."""
     tag = linha.tag
     frente = f"{fator}x" if fator != 1 else ""
-    espacamento = f" c/{tag.espacamento_cm}" if tag.espacamento_cm else ""
+    espacamento = f" c/{tag.espacamento or tag.espacamento_cm}" if tag.espacamento_cm else ""
     return f"{frente}{linha.quantidade}{tag.letra}{tag.numero} ∅{linha.bitola:g}{espacamento} c={linha.comprimento_cm}"
 
 

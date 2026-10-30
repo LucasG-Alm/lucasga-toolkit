@@ -12,10 +12,10 @@ _PADRAO = re.compile(
 
 
 _DIAMETRO = re.compile(r"%%[cC]|∅")
-_MARCADOR = re.compile(r"Ø|c/|c=")
+_MARCADOR = re.compile(r"Ø|c/|c=", re.IGNORECASE)
 _POSICAO = re.compile(r"^(?:(?P<mult>\d+)x)?(?P<qtd>\d+)?\s*(?P<letra>[A-Za-z])(?P<numero>\d+)(?P<resto>.*)$")
 _CAMPOS = re.compile(
-    r"^(?:\s+Ø(?P<bitola>\d+(?:[.,]\d+)?))?(?:\s+c/(?P<espacamento>\d+))?(?:\s+c=(?P<comprimento>\d+))?$"
+    r"^(?:\s+Ø(?P<bitola>\d+(?:[.,]\d+)?))?(?:\s+[cC]/(?P<espacamento>\d+(?:x\d+)?))?(?:\s+[cC]=(?P<comprimento>\d+))?$"
 )
 
 
@@ -33,6 +33,7 @@ class TagLida:
     comprimento_cm: int | None
     texto: str
     espacamento_cm: int | None = None
+    espacamento: str | None = None  # como veio: "15" ou malha "30x30"
 
     @property
     def faltando(self) -> tuple[str, ...]:
@@ -70,7 +71,8 @@ def classificar(texto: str) -> TagLida | NaoEntendi | None:
         bitola=float(campos["bitola"].replace(",", ".")) if campos["bitola"] else None,
         comprimento_cm=int(campos["comprimento"]) if campos["comprimento"] else None,
         texto=limpo,
-        espacamento_cm=int(campos["espacamento"]) if campos["espacamento"] else None,
+        espacamento_cm=int(campos["espacamento"].split("x")[0]) if campos["espacamento"] else None,
+        espacamento=campos["espacamento"],
     )
 
 

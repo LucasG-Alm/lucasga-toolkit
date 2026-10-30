@@ -46,3 +46,17 @@ def test_texto_sem_marcador_e_ignorado():
     """R-FER-TAG-004: inclusive o rotulo N11 sozinho."""
     for texto in ("N11", "PLANTA DE FORMA", "ESC 1:50", ""):
         assert classificar(texto) is None, texto
+
+
+def test_c_maiusculo_e_espacamento_em_malha_valem():
+    """R-FER-TAG-001: visto em prancha real (30/10/2026): C/15, C/30x30, C=."""
+    tag = classificar("23N6 %%C10 C/15 c=120")
+    assert isinstance(tag, TagLida) and (tag.numero, tag.quantidade, tag.bitola, tag.comprimento_cm) == (6, 23, 10.0, 120)
+    malha = classificar("30N7 %%C8 C/30x30 C=28")
+    assert isinstance(malha, TagLida)
+    assert (malha.quantidade, malha.bitola, malha.espacamento, malha.comprimento_cm) == (30, 8.0, "30x30", 28)
+
+
+def test_nota_com_diametro_continua_nao_entendida():
+    """R-FER-TAG-003"""
+    assert isinstance(classificar("SOLDAR EM ESPERAS Ø10mm L≥8cm"), NaoEntendi)

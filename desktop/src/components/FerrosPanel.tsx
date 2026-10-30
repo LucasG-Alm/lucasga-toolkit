@@ -113,7 +113,7 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
         </table>
         <table className="ferros-tabela"><caption>RESUMO CA-50</caption>
           <thead><tr><th>Ø</th><th>Comp. (m)</th><th>kg/m</th><th>Peso (kg)</th></tr></thead>
-          <tbody>{calculo.resumo?.map(r => <tr key={r.bitola}><td>{r.bitola}</td><td>{r.comprimento_m}</td>
+          <tbody>{calculo.resumo?.map(r => <tr key={r.bitola}><td>{r.bitola}</td><td>{kg(r.comprimento_m)}</td>
             <td><Campo key={`${r.bitola}-${r.peso_por_m}`} label={`kg/m de ${r.bitola}`} valor={r.peso_por_m} onSalvar={t => mudarPeso(r.bitola, t)} /></td><td>{kg(r.peso_kg)}</td></tr>)}</tbody>
         </table>
       </div>}
