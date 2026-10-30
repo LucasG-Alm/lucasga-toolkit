@@ -76,7 +76,7 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
   const [progresso, setProgresso] = useState<FerrosProgresso | null>(null);
   useEffect(() => api.onFerrosProgresso?.(setProgresso), [api]);
   const linhas = useMemo(() => grade?.linhas.map(l => ({ ...l, mult: grade.multiplicadores[String(l.numero)] ?? 1 })) ?? SEM_ITENS, [grade]);
-  const tGrade = useTabela(linhas, COLS_GRADE);
+  const tGrade = useTabela(linhas, COLS_GRADE, 'ferros-colunas-grade');
   const tLista = useTabela(calculo.lista ?? SEM_ITENS, COLS_LISTA);
   const tResumo = useTabela(calculo.resumo ?? SEM_ITENS, COLS_RESUMO);
 
@@ -170,13 +170,16 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
           onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); mover(arrastando, l.handle); }}>
           <td><span className="ferros-alca" draggable aria-label={`Arrastar ${l.handle}`} title="Arraste para reordenar"
             onDragStart={() => setArrastando(l.handle)} onDragEnd={() => setArrastando(null)}>⠿</span><input type="checkbox" aria-label={`Marcar ${l.handle}`} checked={marcadas.has(l.handle)} onChange={e => { const s = new Set(marcadas); if (e.target.checked) s.add(l.handle); else s.delete(l.handle); setMarcadas(s); }} /></td>
-          <td>{l.texto}{l.difere && <small className="ferros-difere"> difere do desenho ({l.quantidade_desenho})</small>}</td>
-          <td>{l.posicao}</td>
-          <td className="num"><Campo campo="bitola" linha={i} label={`Ø de ${l.handle}`} valor={l.bitola} falta={l.bitola === null} onSalvar={t => mudarLinha(l.handle, { bitola: numero(t) })} /></td>
-          <td className="num"><Campo campo="comprimento" linha={i} label={`c de ${l.handle}`} valor={l.comprimento_cm} falta={l.comprimento_cm === null} onSalvar={t => { const v = numero(t); mudarLinha(l.handle, { comprimento_cm: v === null ? null : Math.round(v) }); }} /></td>
-          <td className="num"><Campo campo="quantidade" linha={i} label={`Qtd de ${l.handle}`} valor={l.quantidade} onSalvar={t => { const v = numero(t); if (v !== null) mudarLinha(l.handle, { quantidade: Math.round(v) }); }} /></td>
-          <td className="num"><Campo key={`${l.handle}-${l.mult}`} campo="mult" linha={i} label={`× de ${l.handle}`} valor={l.mult} onSalvar={t => mudarMultiplicador(l.numero, t)} largura="w-12" /></td>
-          <td><Campo key={`${l.handle}-${l.elemento}`} campo="elemento" linha={i} label={`Elemento de ${l.handle}`} valor={l.elemento} onSalvar={t => mudarLinha(l.handle, { elemento: t.trim() || l.layer })} largura="w-40" /></td>
+          {tGrade.colunas.map(c => {
+            // R-FER-UI-007: as células seguem a ordem das colunas
+            if (c.key === 'texto') return <td key={c.key}>{l.texto}{l.difere && <small className="ferros-difere"> difere do desenho ({l.quantidade_desenho})</small>}</td>;
+            if (c.key === 'posicao') return <td key={c.key}>{l.posicao}</td>;
+            if (c.key === 'bitola') return <td key={c.key} className="num"><Campo campo="bitola" linha={i} label={`Ø de ${l.handle}`} valor={l.bitola} falta={l.bitola === null} onSalvar={t => mudarLinha(l.handle, { bitola: numero(t) })} /></td>;
+            if (c.key === 'comprimento_cm') return <td key={c.key} className="num"><Campo campo="comprimento" linha={i} label={`c de ${l.handle}`} valor={l.comprimento_cm} falta={l.comprimento_cm === null} onSalvar={t => { const v = numero(t); mudarLinha(l.handle, { comprimento_cm: v === null ? null : Math.round(v) }); }} /></td>;
+            if (c.key === 'quantidade') return <td key={c.key} className="num"><Campo campo="quantidade" linha={i} label={`Qtd de ${l.handle}`} valor={l.quantidade} onSalvar={t => { const v = numero(t); if (v !== null) mudarLinha(l.handle, { quantidade: Math.round(v) }); }} /></td>;
+            if (c.key === 'mult') return <td key={c.key} className="num"><Campo key={`${l.handle}-${l.mult}`} campo="mult" linha={i} label={`× de ${l.handle}`} valor={l.mult} onSalvar={t => mudarMultiplicador(l.numero, t)} largura="w-12" /></td>;
+            return <td key={c.key}><Campo key={`${l.handle}-${l.elemento}`} campo="elemento" linha={i} label={`Elemento de ${l.handle}`} valor={l.elemento} onSalvar={t => mudarLinha(l.handle, { elemento: t.trim() || l.layer })} largura="w-40" /></td>;
+          })}
           <td><button className="ferros-zoom" aria-label={`Zoom em ${l.handle}`} onClick={() => zoom(l.x, l.y)}><LocateFixed size={14} /></button></td>
         </tr>)}</tbody>
       </table>

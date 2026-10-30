@@ -189,3 +189,22 @@ test('progresso da leitura aparece no lugar da tabela (R-FER-UI-006)', async () 
   await waitFor(() => expect(screen.queryByRole('progressbar')).toBeNull());
   expect(screen.getByText('2x4N11 Ø12.5 c=391')).toBeTruthy();
 });
+
+test('reposicionar colunas da grade arrastando o título, e o app lembra (R-FER-UI-007)', async () => {
+  const { api } = setup(p => p.acao === 'ler' ? lido : { lista: [], resumo: [], total: 0, avisos: [] });
+  const titulos = () => within(screen.getAllByRole('table')[0]).getAllByRole('columnheader').map(th => th.textContent).filter(Boolean);
+  const { unmount } = render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
+  await screen.findByText('2x4N11 Ø12.5 c=391');
+  expect(titulos()[0]).toBe('Tag no desenho');
+  const th = (nome: string) => screen.getAllByRole('button', { name: `Ordenar por ${nome}` })[0].closest('th')!;
+  fireEvent.dragStart(th('Elemento')); fireEvent.dragOver(th('Tag no desenho')); fireEvent.drop(th('Tag no desenho'));
+  expect(titulos().slice(0, 2)).toEqual(['Elemento', 'Tag no desenho']);
+  const primeira = within(screen.getAllByRole('table')[0]).getAllByRole('row')[1];
+  expect(within(primeira).getAllByRole('cell')[1].querySelector('input')!.getAttribute('aria-label')).toMatch(/^Elemento de/);
+  unmount();
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
+  await screen.findByText('2x4N11 Ø12.5 c=391');
+  expect(titulos()[0]).toBe('Elemento');
+});

@@ -6,28 +6,55 @@ import './tabela.css';
 // Cabeçalho estilo Excel da Busca Unificada (R-FER-UI-001): título ordena, funil filtra.
 export interface Coluna { key: string; titulo: string; tipo: Tipo; filtro?: 'lista' | 'numero'; className?: string }
 
-export function useTabela<T>(itens: T[], colunas: Coluna[]) {
+function ordemSalva(chave: string | undefined, colunas: Coluna[]): string[] {
+  const padrao = colunas.map(c => c.key);
+  if (!chave) return padrao;
+  try {
+    const salva = JSON.parse(localStorage.getItem(chave) || 'null');
+    // só vale se tiver exatamente as mesmas colunas (coluna nova ou removida volta ao padrão)
+    return Array.isArray(salva) && salva.length === padrao.length && padrao.every(k => salva.includes(k)) ? salva : padrao;
+  } catch { return padrao; }
+}
+
+// `lembrar`: chave do localStorage para guardar a ordem das colunas arrastadas (R-FER-UI-007).
+export function useTabela<T>(itens: T[], colunas: Coluna[], lembrar?: string) {
   const [ordem, setOrdem] = useState<Ordem>(null);
   const [filtros, setFiltros] = useState<Filtros>({});
+  const [ordemColunas, setOrdemColunas] = useState(() => ordemSalva(lembrar, colunas));
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const colunasOrdenadas = useMemo(() => ordemColunas.map(k => colunas.find(c => c.key === k)!), [ordemColunas, colunas]);
+  function moverColuna(de: string | null, para: string) {
+    setArrastando(null);
+    if (!lembrar || !de || de === para) return;
+    const nova = ordemColunas.filter(k => k !== de);
+    const alvo = nova.indexOf(para);
+    nova.splice(ordemColunas.indexOf(de) < ordemColunas.indexOf(para) ? alvo + 1 : alvo, 0, de);
+    setOrdemColunas(nova);
+    try { localStorage.setItem(lembrar, JSON.stringify(nova)); } catch { /* sem armazenamento: vale até fechar */ }
+  }
   const visiveis = useMemo(() => {
     const filtrados = aplicarFiltros(itens, filtros);
     const col = ordem && colunas.find(c => c.key === ordem.key);
     return ordem && col ? ordenar(filtrados, ordem.key, ordem.dir, col.tipo) : filtrados;
   }, [itens, filtros, ordem, colunas]);
-  const cabecalho = colunas.map(c => <CabecalhoExcel key={c.key} coluna={c} itens={itens} ordem={ordem} filtros={filtros}
-    onOrdem={setOrdem} onFiltro={f => setFiltros(old => ({ ...old, [c.key]: f }))} />);
-  return { visiveis, ordem, setOrdem, filtros, cabecalho };
+  const cabecalho = colunasOrdenadas.map(c => <CabecalhoExcel key={c.key} coluna={c} itens={itens} ordem={ordem} filtros={filtros}
+    onOrdem={setOrdem} onFiltro={f => setFiltros(old => ({ ...old, [c.key]: f }))}
+    arrastar={lembrar ? { inicio: () => setArrastando(c.key), soltar: () => moverColuna(arrastando, c.key), fim: () => setArrastando(null) } : undefined} />);
+  return { visiveis, ordem, setOrdem, filtros, cabecalho, colunas: colunasOrdenadas };
 }
 
 const FUNIL = <svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M1.5 2h13a.5.5 0 0 1 .38.82L10 9v4.5a.5.5 0 0 1-.72.45l-2.5-1.25A.5.5 0 0 1 6.5 12V9L1.12 2.82A.5.5 0 0 1 1.5 2z" /></svg>;
 
-function CabecalhoExcel<T>({ coluna, itens, ordem, filtros, onOrdem, onFiltro }: {
+function CabecalhoExcel<T>({ coluna, itens, ordem, filtros, onOrdem, onFiltro, arrastar }: {
   coluna: Coluna; itens: T[]; ordem: Ordem; filtros: Filtros; onOrdem(o: Ordem): void; onFiltro(f: Filtro | undefined): void;
+  arrastar?: { inicio(): void; soltar(): void; fim(): void };
 }) {
   const [menu, setMenu] = useState<DOMRect | null>(null);
   const ativo = filtroAtivo(filtros[coluna.key]);
   const seta = ordem?.key === coluna.key ? (ordem.dir === 'asc' ? ' ▲' : ' ▼') : '';
-  return <th className={coluna.className}>
+  return <th className={coluna.className} draggable={!!arrastar} title={arrastar ? 'Arraste o título para mudar a coluna de lugar' : undefined}
+    onDragStart={arrastar?.inicio} onDragEnd={arrastar?.fim}
+    onDragOver={arrastar ? e => e.preventDefault() : undefined} onDrop={arrastar ? e => { e.preventDefault(); arrastar.soltar(); } : undefined}>
     <button className="th-titulo" aria-label={`Ordenar por ${coluna.titulo}`}
       onClick={() => { const dir = proximaDir(ordem, coluna.key); onOrdem(dir ? { key: coluna.key, dir } : null); }}>{coluna.titulo}<span className="th-seta">{seta}</span></button>
     {coluna.filtro && <button className={`th-funil${ativo ? ' aceso' : ''}`} aria-label={`Filtrar ${coluna.titulo}`} title={ativo ? 'Filtro ativo — clique para limpar' : 'Filtrar'}
