@@ -66,14 +66,20 @@ Etapas: **1 Contar** (ler + grade + Excel FERRO) → **2 Plotar tabela** → **3
 | R-FER-MEM-002 | A chave de cada tag é o handle; tag que sumiu do desenho é descartada da memória ao gravar, com aviso. |
 | R-FER-MEM-003 | Desenho sem caminho (nunca salvo): avisa que não vai lembrar e não grava. |
 
-### Exportar para a planilha FERRO (`excel.py`)
+### Planilha FERRO gerada pelo app (`excel.py`)
+
+Decisão de 30/10/2026: o app **gera** a planilha inteira (as fórmulas da planilha FERRO de
+referência, no tamanho exato), em vez de preencher B:C de um modelo com intervalos fixos.
+Sem tabela dinâmica: o resumo por posição é feito com fórmula. Não precisa do Excel para gerar.
 
 | ID | Regra |
 |----|-------|
-| R-FER-XLS-001 | Você escolhe a planilha-modelo; a saída é `<modelo> - PREENCHIDA.xlsx` ao lado. O modelo nunca é alterado; saída igual ao modelo é erro. |
-| R-FER-XLS-002 | Coluna B = texto da tag com `∅` (U+2205), o multiplicador e a quantidade editada escritos nele, e campos completados preenchidos; coluna C = Elemento. Uma tag por linha a partir da linha 4. |
-| R-FER-XLS-003 | Linhas de B:C além das usadas agora são limpas (job anterior não infla o total). |
-| R-FER-XLS-004 | Escrita pelo Excel (COM), preservando tabela dinâmica e fórmulas. Saída já aberta no Excel: erro, sem escrever. |
+| R-FER-XLS-001 | Gera `<nome do DWG> - FERRO.xlsx` na pasta do DWG. Se já existe, o antigo vai para `_BACKUP/<nome> (antes de AAAA-MM-DD HHMMSS).xlsx`. Aberto no Excel (trava `~$`): erro, sem gravar. Desenho nunca salvo: erro pedindo para salvar. |
+| R-FER-XLS-002 | Aba FERRO, uma tag por linha a partir da linha 4: B = texto da tag com `∅` (U+2205), multiplicador, quantidade editada e campos completados escritos nele; C = Elemento; D:J = fórmulas que leem o texto de B (posição, Ø, quantidade, comprimento, peso). |
+| R-FER-XLS-003 | Abaixo das tags, resumo por bitola com `SUMIFS` no intervalo exato das tags, o kg/m da página e o total geral. |
+| R-FER-XLS-004 | Ao lado, resumo por posição (Ø, soma de quantidade, comprimento unitário, comprimento total), também por fórmula. |
+| R-FER-XLS-005 | O total que o Excel calcula é o mesmo total CA-50 da página (teste com Excel real, `FERROS_EXCEL=1`). |
+| R-FER-XLS-006 | Com campo vermelho, não gera (mesma regra da lista, R-FER-LIS-006). |
 
 ## Etapa 2 — Plotar tabela (pendente)
 

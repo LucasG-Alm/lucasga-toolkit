@@ -1,74 +1,95 @@
-from collections.abc import Mapping, Sequence
+"""Gera a planilha FERRO inteira, no tamanho exato da prancha.
+
+As formulas sao as da planilha FERRO de referencia do Lucas (leem o texto da
+coluna B), mas com os intervalos certos para o numero de tags. No lugar da
+tabela dinamica, o resumo por posicao e feito com formula (R-FER-XLS-004).
+"""
+
+import datetime
+import shutil
+from collections.abc import Mapping
 from pathlib import Path
 
-from cotador.lista import TagLida, texto_multiplicado
+import openpyxl
+
+from cotador.grade import Grade, lista_da_grade, texto_para_planilha
+from cotador.resumo import montar_resumo
 
 
-def exportar_tags(
-    tags: Sequence[TagLida],
-    modelo: Path,
-    saida: Path,
-    aba: str = "FERRO",
-    coluna: str = "B",
-    primeira_linha: int = 4,
-    multiplicadores: Mapping[int, int] | None = None,
-) -> int:
-    """Escreve o texto das tags na coluna de uma planilha modelo.
+class PlanilhaAberta(Exception):
+    pass
 
-    A planilha ja tem, na aba `aba`, formulas que decompoem o texto bruto
-    da coluna `coluna` (posicao, bitola, quantidade, comprimento, peso).
-    Esta funcao so preenche a materia-prima: uma tag por linha, a partir
-    de `primeira_linha`. O resto (totais, resumo, dinamica) e a propria
-    planilha quem calcula.
 
-    `modelo` nunca e alterado — a leitura mantem as formulas intactas
-    (sem `data_only`), e o resultado sempre vai para `saida`, um arquivo
-    separado. Se `saida` resolver para o mesmo caminho de `modelo`, a
-    funcao levanta erro em vez de arriscar sobrescrever o modelo.
+def _formulas(r: int, letra: str, peso: str) -> dict[str, str]:
+    b = f"B{r}"
+    pos = f'FIND("{letra}",{b})'
+    return {
+        "D": f'=TEXT(MID({b},{pos}+1,FIND(" ",{b},{pos}+1)-{pos}-1),"00")',
+        "E": f'=MID({b},FIND(" ∅",{b})+2,FIND(" ",{b},FIND(" ∅",{b})+1)-FIND(" ∅",{b})-1)*1',
+        "F": f'=IFERROR(MID({b},1,{pos}-1)*1,MID({b},1,FIND("x",{b})-1)*MID({b},FIND("x",{b})+1,{pos}-FIND("x",{b})-1))',
+        "G": f'=MID({b},FIND("c=",{b})+2,10)*1',
+        "H": f"=F{r}*G{r}",
+        "I": f"=VLOOKUP(E{r},{peso},3,0)",
+        "J": f'=CONVERT(H{r},"cm","m")*I{r}',
+    }
 
-    Se o modelo ja tinha linhas preenchidas alem das que `tags` ocupa
-    agora, o excedente e limpo — senao tags de um job anterior ficam
-    escondidas na planilha e inflam os totais das formulas em silencio.
 
-    As formulas da planilha buscam o simbolo `∅` (U+2205); o DXF grava o
-    texto com `Ø` (U+00D8). Por isso o texto de cada tag e normalizado
-    para `∅` antes de escrever — do contrario toda linha vira `#VALUE!`.
+def gerar_planilha(grade: Grade, peso_por_m: Mapping[float, float], dwg: Path | None) -> Path:
+    if dwg is None:
+        raise ValueError("Salve o desenho antes: a planilha é gravada ao lado do DWG.")
+    itens = lista_da_grade(grade)  # Bloqueado com campo vermelho (R-FER-XLS-006)
+    resumo, _ = montar_resumo(itens, peso_por_m)  # bitola sem peso: KeyError com o nome
 
-    `multiplicadores` mapeia posicao -> fator, igual ao do `montar_lista`,
-    e entra no multiplicador escrito na propria tag: com `{11: 6}`, a tag
-    `4x10N11` vai para a planilha como `24x10N11`. Sem isso a planilha
-    contaria diferente do DXF, que e pior do que nao exportar.
-    """
-    try:
-        import openpyxl
-    except ImportError as exc:
-        raise ImportError(
-            "openpyxl nao esta instalado. Instale o extra 'excel': "
-            "pip install -e .[excel]"
-        ) from exc
+    dwg = Path(dwg)
+    saida = dwg.with_name(f"{dwg.stem} - FERRO.xlsx")
+    if (saida.parent / f"~${saida.name}").exists():
+        raise PlanilhaAberta(f"{saida.name} está aberta no Excel: feche e gere de novo.")
 
-    modelo = Path(modelo)
-    saida = Path(saida)
-    if modelo.resolve() == saida.resolve():
-        raise ValueError("saida nao pode ser o mesmo arquivo que modelo")
+    livro = openpyxl.Workbook()
+    ws = livro.active
+    ws.title = "FERRO"
+    for celula, valor in {"C1": "ELEMENTO", "D1": "N", "E1": " ∅", "F1": "QUANT", "G1": "comp. (cm)", "I1": "Peso (Kg)",
+                          "G2": "Unit", "H2": "Total", "I2": "Unit (kg/m)", "J2": "Total (kg)",
+                          "C3": "ELEMENTO", "D3": "N", "E3": " ∅", "F3": "QUANT", "G3": "Unit", "H3": "Total",
+                          "I3": "Peso.Unit", "J3": "Peso.Total"}.items():
+        ws[celula] = valor
 
-    livro = openpyxl.load_workbook(modelo)
-    planilha = livro[aba]
+    ultima = 3 + len(grade.linhas)
+    topo = ultima + 3
+    peso = f"$E${topo + 1}:$H${topo + len(resumo)}"
+    for r, linha in enumerate(grade.linhas, start=4):
+        ws[f"B{r}"] = texto_para_planilha(linha, grade.multiplicadores.get(linha.tag.numero, 1))
+        ws[f"C{r}"] = linha.elemento
+        for coluna, formula in _formulas(r, linha.tag.letra, peso).items():
+            ws[f"{coluna}{r}"] = formula
 
-    ultima_linha_com_texto = primeira_linha - 1
-    linha = primeira_linha
-    multiplicadores = multiplicadores or {}
-    for tag in tags:
-        fator = multiplicadores.get(tag.numero, 1)
-        texto = texto_multiplicado(tag, fator).replace("Ø", "∅")
-        planilha[f"{coluna}{linha}"] = texto
-        ultima_linha_com_texto = linha
-        linha += 1
+    tags = lambda c: f"${c}$4:${c}${ultima}"  # noqa: E731
+    for celula, valor in {f"E{topo}": " ∅", f"F{topo}": "comp. (m)", f"G{topo}": "Peso m/l", f"H{topo}": "Total"}.items():
+        ws[celula] = valor
+    for r, item in enumerate(resumo, start=topo + 1):
+        ws[f"E{r}"] = item.bitola
+        ws[f"F{r}"] = f'=CONVERT(SUMIFS({tags("H")},{tags("E")},E{r}),"cm","m")'
+        ws[f"G{r}"] = item.peso_por_m
+        ws[f"H{r}"] = f"=F{r}*G{r}"
+    fim = topo + len(resumo)
+    ws[f"E{fim + 1}"] = "Total"
+    ws[f"H{fim + 1}"] = f"=SUM(H{topo + 1}:H{fim})"
 
-    linha_limite = max(planilha.max_row, ultima_linha_com_texto)
-    for linha_sobra in range(ultima_linha_com_texto + 1, linha_limite + 1):
-        planilha[f"{coluna}{linha_sobra}"] = None
+    # ponytail: posicao pelo numero ("01"), como a dinamica da planilha de referencia; N1 e G1 somariam juntos
+    for celula, valor in {f"K{topo}": "N", f"L{topo}": "Máx. de  ∅", f"M{topo}": "Soma de QUANT",
+                          f"N{topo}": "Máx de Unit", f"O{topo}": "Soma de Total"}.items():
+        ws[celula] = valor
+    for r, numero in enumerate(sorted({i.numero for i in itens}), start=topo + 1):
+        ws[f"K{r}"] = f"{numero:02d}"
+        ws[f"L{r}"] = f'=MAXIFS({tags("E")},{tags("D")},K{r})'
+        ws[f"M{r}"] = f'=SUMIFS({tags("F")},{tags("D")},K{r})'
+        ws[f"N{r}"] = f'=MAXIFS({tags("G")},{tags("D")},K{r})'
+        ws[f"O{r}"] = f'=SUMIFS({tags("H")},{tags("D")},K{r})'
 
-    saida.parent.mkdir(parents=True, exist_ok=True)
+    if saida.exists():
+        backup = saida.parent / "_BACKUP"
+        backup.mkdir(exist_ok=True)
+        carimbo = datetime.datetime.now().strftime("%Y-%m-%d %H%M%S")
+        shutil.move(saida, backup / f"{saida.stem} (antes de {carimbo}).xlsx")
     livro.save(saida)
-    return len(tags)
+    return saida

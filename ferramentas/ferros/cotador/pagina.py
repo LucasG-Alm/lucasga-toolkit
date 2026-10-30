@@ -1,6 +1,6 @@
 """O que a pagina Ferros do Desktop pede. Entra e sai JSON; a grade mora na tela.
 
-Acoes: ler (AutoCAD), zoom (AutoCAD), calcular, gravar (memoria ao lado do DWG).
+Acoes: ler (AutoCAD), zoom (AutoCAD), calcular, gravar (memoria ao lado do DWG), exportar (planilha FERRO).
 """
 
 from pathlib import Path
@@ -41,8 +41,12 @@ def grade_de_json(dados: dict) -> Grade:
     return Grade(linhas, nao, mult)
 
 
+def _tabela_peso(peso: dict | None) -> dict[float, float]:
+    return {**PESO_POR_M, **{float(k): float(v) for k, v in (peso or {}).items()}}
+
+
 def _calcular(grade: Grade, peso: dict | None) -> dict:
-    tabela = {**PESO_POR_M, **{float(k): float(v) for k, v in (peso or {}).items()}}
+    tabela = _tabela_peso(peso)
     try:
         itens = lista_da_grade(grade)
         resumo, total = montar_resumo(itens, tabela)
@@ -64,6 +68,17 @@ def executar(pedido: dict) -> dict:
     acao = pedido.get("acao")
     if acao == "calcular":
         return _calcular(grade_de_json(pedido["grade"]), pedido.get("peso"))
+    if acao == "exportar":
+        from cotador.excel import PlanilhaAberta, gerar_planilha
+
+        caminho = pedido.get("caminho")
+        try:
+            saida = gerar_planilha(grade_de_json(pedido["grade"]), _tabela_peso(pedido.get("peso")), Path(caminho) if caminho else None)
+        except (Bloqueado, PlanilhaAberta, ValueError) as erro:
+            return {"bloqueado": str(erro)}
+        except KeyError as erro:
+            return {"bloqueado": erro.args[0]}
+        return {"arquivo": str(saida)}
     if acao == "gravar":
         caminho = pedido.get("caminho")
         return {"avisos": gravar_memoria(Path(caminho) if caminho else None, grade_de_json(pedido["grade"]))}

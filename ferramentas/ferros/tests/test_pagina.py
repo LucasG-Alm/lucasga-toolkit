@@ -65,3 +65,12 @@ def test_gravar_memoria_ao_lado_do_dwg(tmp_path):
     assert executar({"acao": "gravar", "grade": dados, "caminho": str(dwg)}) == {"avisos": []}
     assert json.loads((tmp_path / "p.ferros.json").read_text("utf-8"))["tags"]["H0"] == {"elemento": "TAMPA"}
     assert executar({"acao": "gravar", "grade": dados, "caminho": None})["avisos"][0].startswith("Desenho nunca salvo")
+
+
+def test_exportar_gera_a_planilha_ao_lado_do_dwg(tmp_path):
+    """R-FER-XLS-001 / R-FER-XLS-006"""
+    dwg = tmp_path / "p.dwg"
+    r = executar({"acao": "exportar", "grade": grade_json("1N1 Ø10 c=100"), "caminho": str(dwg), "peso": {"10": 0.63}})
+    assert r == {"arquivo": str(tmp_path / "p - FERRO.xlsx")}
+    assert "N1" in executar({"acao": "exportar", "grade": grade_json("3 N1 c/10"), "caminho": str(dwg)})["bloqueado"]
+    assert "Salve" in executar({"acao": "exportar", "grade": grade_json("1N1 Ø10 c=100"), "caminho": None})["bloqueado"]
