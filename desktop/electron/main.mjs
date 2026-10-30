@@ -52,6 +52,7 @@ const locationService = new LocationService({
 });
 const acoesFerros = new Set(['ler', 'desenho', 'zoom', 'calcular', 'gravar', 'exportar']);
 let desenhoFerros = null;
+let runtimeFerros = null; // checagem de Python/bibliotecas uma vez por sessão; Configurações zera
 const inspections = new Map();
 const inspectionKey = (tool, input, options) => JSON.stringify([tool, path.resolve(input),
   (tool === 'localizacao' ? Object.keys(options).filter(key => !['output', 'googleAcknowledged'].includes(key)).sort() :
@@ -112,6 +113,7 @@ function registerHandlers() {
   handle('save-settings', value => {
     if (queue.status === 'running' || starting) throw Error('Aguarde a execução terminar para alterar as configurações.');
     if (!value || typeof value !== 'object') throw Error('Configurações inválidas.');
+    runtimeFerros = null;
     return saveSettings(settingsFile, value);
   });
   handle('check', async tool => (await checks(tool)).check);
@@ -206,10 +208,14 @@ function registerHandlers() {
     if (!pedido || typeof pedido !== 'object' || !acoesFerros.has(pedido.acao)) throw Error('Pedido inválido.');
     // a memória só é gravada ao lado do desenho que o próprio AutoCAD informou
     if (['gravar', 'exportar'].includes(pedido.acao) && pedido.caminho && pedido.caminho !== desenhoFerros) throw Error('Desenho diferente do lido. Leia de novo.');
-    const settings = await readSettings(settingsFile);
-    const required = tools.find(t => t.id === 'ferros').requirements;
-    const runtime = await resolveRuntime(settings, required);
-    if (!runtime.python || runtime.missing.length) throw Error(`Confira Python e as bibliotecas ${runtime.missing.length ? runtime.missing.join(', ') : required.join(', ')} em Configurações.`);
+    if (!runtimeFerros) {
+      const settings = await readSettings(settingsFile);
+      const required = tools.find(t => t.id === 'ferros').requirements;
+      const runtime = await resolveRuntime(settings, required);
+      if (!runtime.python || runtime.missing.length) throw Error(`Confira Python e as bibliotecas ${runtime.missing.length ? runtime.missing.join(', ') : required.join(', ')} em Configurações.`);
+      runtimeFerros = runtime;
+    }
+    const runtime = runtimeFerros;
     const avanco = linha => { const dado = progressoFerros(linha); if (dado) window?.webContents.send('toolkit:ferros-progresso', dado); };
     const resposta = (await runBridge(runtime.python, bridge, { tool: 'ferros', pedido }, avanco)).ferros;
     if (resposta?.desenho) desenhoFerros = resposta.desenho.caminho;

@@ -208,3 +208,17 @@ test('reposicionar colunas da grade arrastando o título, e o app lembra (R-FER-
   await screen.findByText('2x4N11 Ø12.5 c=391');
   expect(titulos()[0]).toBe('Elemento');
 });
+
+test('a grade aparece assim que a leitura termina, antes do cálculo (R-FER-UI-006)', async () => {
+  let soltarCalculo: (v: unknown) => void = () => {};
+  const ferros = vi.fn((p: FerrosPedido) => p.acao === 'ler' ? Promise.resolve(lido)
+    : p.acao === 'calcular' ? new Promise(r => { soltarCalculo = r; }) : Promise.resolve({ avisos: [] }));
+  const api = { ferros } as unknown as ToolkitAPI;
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
+  expect(await screen.findByText('2x4N11 Ø12.5 c=391')).toBeTruthy();
+  expect(screen.queryByRole('progressbar')).toBeNull();
+  expect(screen.getByText('Calculando…')).toBeTruthy();
+  await act(async () => { soltarCalculo({ lista: [], resumo: [], total: 12.5 }); });
+  await waitFor(() => expect(screen.queryByText('Calculando…')).toBeNull());
+});

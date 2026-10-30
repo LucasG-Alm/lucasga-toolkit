@@ -74,6 +74,7 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
   const [planilha, setPlanilha] = useState<string | null>(null);
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [progresso, setProgresso] = useState<FerrosProgresso | null>(null);
+  const [calculando, setCalculando] = useState(false);
   useEffect(() => api.onFerrosProgresso?.(setProgresso), [api]);
   const linhas = useMemo(() => grade?.linhas.map(l => ({ ...l, mult: grade.multiplicadores[String(l.numero)] ?? 1 })) ?? SEM_ITENS, [grade]);
   const tGrade = useTabela(linhas, COLS_GRADE, 'ferros-colunas-grade');
@@ -82,8 +83,9 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
 
   async function atualizar(nova: FerrosGrade, alvo = desenho) {
     setGrade(nova);
+    setCalculando(true);
     try {
-      setCalculo(await api.ferros({ acao: 'calcular', grade: nova, peso: lerPeso() }));
+      try { setCalculo(await api.ferros({ acao: 'calcular', grade: nova, peso: lerPeso() })); } finally { setCalculando(false); }
       const gravado = await api.ferros({ acao: 'gravar', grade: nova, caminho: alvo?.caminho ?? null });
       setAvisos(gravado.avisos ?? []);
     } catch (erro) { onError(erro); }
@@ -97,7 +99,8 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
       if (r.bloqueado) { setAvisos([r.bloqueado]); return; }
       if (r.cancelado || !r.grade) return;
       if (modo === 'nova') { setDesenho(r.desenho ?? null); setMarcadas(new Set()); setPlanilha(null); }
-      setProgresso({ fase: 'calculando', i: 0, n: 0 });
+      // a grade aparece já; LISTA/RESUMO mostram "Calculando…" até o Python responder
+      setLendo(false); setProgresso(null);
       await atualizar(r.grade, r.desenho ?? null);
       setAvisos(old => [...(r.avisos ?? []), ...old]);
     } catch (erro) { onError(erro); } finally { setLendo(false); setProgresso(null); }
@@ -190,6 +193,7 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
         <Button size="sm" variant="ghost" disabled={!marcadas.size} onClick={removerMarcadas}>Remover marcadas</Button>
       </div>
 
+      {calculando && <p className="helper">Calculando…</p>}
       {calculo.bloqueado && <div className="error" role="status">{calculo.bloqueado}</div>}
       {calculo.lista && <div className="ferros-resultado">
         <table className="ferros-tabela"><caption>LISTA DE FERROS</caption>
