@@ -64,8 +64,10 @@ Etapas: **1 Contar** (ler + grade + Excel FERRO) → **2 Plotar tabela** → **3
 
 | ID | Regra |
 |----|-------|
-| R-FER-PES-001 | Padrão = tabela da planilha FERRO: 6.3→0,25 · 8→0,40 · 10→0,617 · 12.5→1,00 · 16→1,20 kg/m. Editável nas configurações da página. |
+| R-FER-PES-001 | Padrão = tabela da planilha FERRO: 6.3→0,25 · 8→0,40 · 10→0,617 · 12.5→1,00 · 16→1,20 kg/m (mais as CA-60 da R-FER-PES-004). Editável nas configurações da página. |
 | R-FER-PES-002 | Bitola sem peso na tabela: erro nomeando a bitola; nunca peso zero ou estimado. |
+| R-FER-PES-003 | CA-60 = bitolas da lista editável na página (padrão Ø 4,2 e 5,0); as demais são CA-50. Cada aço tem seu RESUMO e seu total; sem bitola CA-60, o RESUMO CA-60 não aparece (na tela, na tabela plotada e na planilha). |
+| R-FER-PES-004 | Peso padrão das bitolas CA-60: 4,2 → 0,109 e 5,0 → 0,154 kg/m (NBR 7480), editável como os demais. |
 
 ### Memória do desenho (`.ferros.json`)
 

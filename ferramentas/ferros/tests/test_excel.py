@@ -130,3 +130,13 @@ def test_total_em_negrito_italico_com_borda_dupla(tmp_path):
         c = ws[f"{col}{r}"]
         assert c.font.b and c.font.i and c.border.top.style == "double", col
     assert ws["C3"].font.b and ws["E3"].font.b and ws["K7"].font.b
+
+
+def test_planilha_tem_um_resumo_por_aco(tmp_path):
+    """R-FER-PES-003: CA-60 com bloco e total proprios; sem CA-60, um bloco so."""
+    ws = openpyxl.load_workbook(gerar_planilha(grade("1N1 Ø10 c=100", "10N2 Ø5.0 c=100"), PESO_POR_M, tmp_path / "p.dwg"))["FERRO"]
+    titulos = [ws[f"D{r}"].value for r in range(4, 30) if str(ws[f"D{r}"].value or "").startswith("RESUMO")]
+    totais = [r for r in range(4, 30) if ws[f"E{r}"].value == "Total"]
+    assert titulos == ["RESUMO CA-50", "RESUMO CA-60"] and len(totais) == 2
+    ws1 = openpyxl.load_workbook(gerar_planilha(grade("1N1 Ø10 c=100"), PESO_POR_M, tmp_path / "q.dwg"))["FERRO"]
+    assert [ws1[f"D{r}"].value for r in range(4, 30) if str(ws1[f"D{r}"].value or "").startswith("RESUMO")] == ["RESUMO CA-50"]

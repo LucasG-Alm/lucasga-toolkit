@@ -21,3 +21,5 @@
 .ferros-progresso-barra { height: 100%; background: var(--primary, #e8833a); transition: width .2s; }
 .ferros-progresso-indeterminado { height: 100%; width: 30%; background: var(--primary, #e8833a); animation: ferros-vai 1.2s ease-in-out infinite; }
 @keyframes ferros-vai { from { transform: translateX(-100%); } to { transform: translateX(350%); } }
+.ferros-resumos { display: flex; flex-direction: column; gap: 12px; }
+.ferros-config { font-size: 13px; }

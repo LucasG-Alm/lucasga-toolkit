@@ -14,7 +14,7 @@ import openpyxl
 from openpyxl.styles import Border, Font, Side
 
 from cotador.grade import Grade, lista_da_grade, texto_para_planilha
-from cotador.resumo import montar_resumo
+from cotador.resumo import CA60_PADRAO, resumos_por_aco
 
 
 class PlanilhaAberta(Exception):
@@ -40,11 +40,11 @@ def _formulas(r: int, letra: str, peso: str) -> dict[str, str]:
     }
 
 
-def gerar_planilha(grade: Grade, peso_por_m: Mapping[float, float], dwg: Path | None) -> Path:
+def gerar_planilha(grade: Grade, peso_por_m: Mapping[float, float], dwg: Path | None, ca60=CA60_PADRAO) -> Path:
     if dwg is None:
         raise ValueError("Salve o desenho antes: a planilha é gravada ao lado do DWG.")
     itens = lista_da_grade(grade)  # Bloqueado com campo vermelho (R-FER-XLS-006)
-    resumo, _ = montar_resumo(itens, peso_por_m)  # bitola sem peso: KeyError com o nome
+    blocos = resumos_por_aco(itens, peso_por_m, ca60)  # bitola sem peso: KeyError com o nome (R-FER-PES-003)
 
     dwg = Path(dwg)
     saida = dwg.with_name(f"{dwg.stem} - FERRO.xlsx")
@@ -63,7 +63,12 @@ def gerar_planilha(grade: Grade, peso_por_m: Mapping[float, float], dwg: Path | 
 
     ultima = 3 + len(grade.linhas)
     topo = ultima + 3
-    peso = f"$E${topo + 1}:$H${topo + len(resumo)}"
+    # um bloco de resumo por aco, 2 linhas vazias entre eles; o PROCV do peso cobre todos
+    cabecalhos, r = [], topo
+    for bloco in blocos:
+        cabecalhos.append(r)
+        r += len(bloco["linhas"]) + 4
+    peso = f"$E${topo + 1}:$H${cabecalhos[-1] + len(blocos[-1]['linhas'])}"
     for r, linha in enumerate(grade.linhas, start=4):
         ws[f"B{r}"] = texto_para_planilha(linha, grade.multiplicadores.get(linha.tag.numero, 1))
         ws[f"C{r}"] = linha.elemento
@@ -71,20 +76,22 @@ def gerar_planilha(grade: Grade, peso_por_m: Mapping[float, float], dwg: Path | 
             ws[f"{coluna}{r}"] = formula
 
     tags = lambda c: f"${c}$4:${c}${ultima}"  # noqa: E731
-    for celula, valor in {f"E{topo}": " ∅", f"F{topo}": "comp. (m)", f"G{topo}": "Peso m/l", f"H{topo}": "Total"}.items():
-        ws[celula] = valor
-        ws[celula].font = NEGRITO
-    for r, item in enumerate(resumo, start=topo + 1):
-        ws[f"E{r}"] = item.bitola
-        ws[f"F{r}"] = f'=CONVERT(SUMIFS({tags("H")},{tags("E")},E{r}),"cm","m")'
-        ws[f"G{r}"] = item.peso_por_m
-        ws[f"H{r}"] = f"=F{r}*G{r}"
-    fim = topo + len(resumo)
-    ws[f"E{fim + 1}"] = "Total"
-    ws[f"H{fim + 1}"] = f"=SUM(H{topo + 1}:H{fim})"
-    for coluna in "EFGH":
-        ws[f"{coluna}{fim + 1}"].font = TOTAL
-        ws[f"{coluna}{fim + 1}"].border = LINHA_DUPLA
+    for cab, bloco in zip(cabecalhos, blocos):
+        for celula, valor in {f"D{cab}": f"RESUMO {bloco['aco']}", f"E{cab}": " ∅", f"F{cab}": "comp. (m)",
+                              f"G{cab}": "Peso m/l", f"H{cab}": "Total"}.items():
+            ws[celula] = valor
+            ws[celula].font = NEGRITO
+        for r, item in enumerate(bloco["linhas"], start=cab + 1):
+            ws[f"E{r}"] = item.bitola
+            ws[f"F{r}"] = f'=CONVERT(SUMIFS({tags("H")},{tags("E")},E{r}),"cm","m")'
+            ws[f"G{r}"] = item.peso_por_m
+            ws[f"H{r}"] = f"=F{r}*G{r}"
+        fim = cab + len(bloco["linhas"])
+        ws[f"E{fim + 1}"] = "Total"
+        ws[f"H{fim + 1}"] = f"=SUM(H{cab + 1}:H{fim})"
+        for coluna in "EFGH":
+            ws[f"{coluna}{fim + 1}"].font = TOTAL
+            ws[f"{coluna}{fim + 1}"].border = LINHA_DUPLA
 
     # ponytail: posicao pelo numero ("01"), como a dinamica da planilha de referencia; N1 e G1 somariam juntos
     for celula, valor in {f"K{topo}": "N", f"L{topo}": "Máx. de  ∅", f"M{topo}": "Soma de QUANT",

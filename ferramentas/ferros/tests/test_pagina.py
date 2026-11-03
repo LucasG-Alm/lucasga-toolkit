@@ -114,3 +114,13 @@ def test_progresso_vai_numa_linha_marcada(capsys):
 
     progresso("lendo", 3, 10)
     assert capsys.readouterr().out == '@@FERROS_PROGRESSO@@{"fase": "lendo", "i": 3, "n": 10}\n'
+
+
+def test_calcular_separa_resumo_por_aco():
+    """R-FER-PES-003"""
+    r = executar({"acao": "calcular", "grade": grade_json("1N1 Ø10 c=100", "10N2 Ø5.0 c=100")})
+    assert [(b["aco"], [l["bitola"] for l in b["linhas"]]) for b in r["resumos"]] == [("CA-50", [10.0]), ("CA-60", [5.0])]
+    assert r["total"] == round(r["resumos"][0]["total"] + r["resumos"][1]["total"], 2)
+    assert r["ca60"] == [4.2, 5.0]
+    so50 = executar({"acao": "calcular", "grade": grade_json("1N1 Ø10 c=100", "10N2 Ø5.0 c=100"), "ca60": []})
+    assert [b["aco"] for b in so50["resumos"]] == ["CA-50"]

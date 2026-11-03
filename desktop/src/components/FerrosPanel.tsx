@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { LocateFixed } from 'lucide-react';
 import { Button } from './ui/button';
-import type { FerrosDesenho, FerrosGrade, FerrosLinha, FerrosProgresso, FerrosResposta, ToolkitAPI } from '../../shared/contracts';
+import type { FerrosDesenho, FerrosGrade, FerrosLinha, FerrosProgresso, FerrosResposta, FerrosResumoAco, ToolkitAPI } from '../../shared/contracts';
 import { useTabela, type Coluna } from './tabela/Tabela';
 import { ordenar } from './tabela/nucleo';
 import './ferros-panel.css';
@@ -34,6 +34,20 @@ const SEM_ITENS: never[] = [];
 const PESO = 'ferros-peso';
 // ponytail: peso editado no localStorage do app; vira configuração do Toolkit se precisar valer entre máquinas
 function lerPeso(): Record<string, number> { try { return JSON.parse(localStorage.getItem(PESO) || '{}'); } catch { return {}; } }
+// Bitolas CA-60 (R-FER-PES-003): só a escolha do usuário fica aqui; o padrão vem do Python.
+const CA60 = 'ferros-ca60';
+function lerCa60(): number[] | undefined { try { return JSON.parse(localStorage.getItem(CA60) || 'null') ?? undefined; } catch { return undefined; } }
+const bitolas = (lista?: number[]) => (lista ?? []).map(b => b.toLocaleString('pt-BR', { minimumFractionDigits: 1 })).join('; ');
+
+function TabelaResumo({ bloco, onPeso }: { bloco: FerrosResumoAco; onPeso(bitola: number, texto: string): void }) {
+  const t = useTabela(bloco.linhas, COLS_RESUMO);
+  return <table className="ferros-tabela"><caption>RESUMO {bloco.aco}</caption>
+    <thead><tr>{t.cabecalho}</tr></thead>
+    <tbody>{t.visiveis.map(r => <tr key={r.bitola}><td className="num"><span>{r.bitola}</span></td><td className="num"><span>{kg(r.comprimento_m)}</span></td>
+      <td className="num"><Campo key={`${r.bitola}-${r.peso_por_m}`} label={`kg/m de ${r.bitola}`} valor={r.peso_por_m} onSalvar={txt => onPeso(r.bitola, txt)} /></td><td className="num"><span>{kg(r.peso_kg)}</span></td></tr>)}</tbody>
+    <tfoot><tr className="ferros-total-linha"><td colSpan={3}>Total</td><td className="num"><span>{kg(bloco.total)}</span></td></tr></tfoot>
+  </table>;
+}
 const numero = (texto: string) => { const v = Number(texto.trim().replace(',', '.')); return texto.trim() === '' || !Number.isFinite(v) ? null : v; };
 const kg = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -79,13 +93,13 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
   const linhas = useMemo(() => grade?.linhas.map(l => ({ ...l, mult: grade.multiplicadores[String(l.numero)] ?? 1 })) ?? SEM_ITENS, [grade]);
   const tGrade = useTabela(linhas, COLS_GRADE, 'ferros-colunas-grade');
   const tLista = useTabela(calculo.lista ?? SEM_ITENS, COLS_LISTA);
-  const tResumo = useTabela(calculo.resumo ?? SEM_ITENS, COLS_RESUMO);
+  const resumos: FerrosResumoAco[] = calculo.resumos ?? (calculo.resumo ? [{ aco: 'CA-50', linhas: calculo.resumo, total: calculo.total ?? 0 }] : []);
 
   async function atualizar(nova: FerrosGrade, alvo = desenho) {
     setGrade(nova);
     setCalculando(true);
     try {
-      try { setCalculo(await api.ferros({ acao: 'calcular', grade: nova, peso: lerPeso() })); } finally { setCalculando(false); }
+      try { setCalculo(await api.ferros({ acao: 'calcular', grade: nova, peso: lerPeso(), ca60: lerCa60() })); } finally { setCalculando(false); }
       const gravado = await api.ferros({ acao: 'gravar', grade: nova, caminho: alvo?.caminho ?? null });
       setAvisos(gravado.avisos ?? []);
     } catch (erro) { onError(erro); }
@@ -141,6 +155,11 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
     if (!grade || !elementoLote.trim()) return;
     void atualizar({ ...grade, linhas: grade.linhas.map(l => marcadas.has(l.handle) ? { ...l, elemento: elementoLote.trim() } : l) });
   }
+  function mudarCa60(texto: string) {
+    const lista = texto.split(/[;\s]+/).map(numero).filter((v): v is number => v !== null);
+    try { localStorage.setItem(CA60, JSON.stringify(lista)); } catch { /* sem armazenamento: vale até fechar */ }
+    if (grade) void atualizar(grade);
+  }
   function mudarPeso(bitola: number, texto: string) {
     const v = numero(texto); if (v === null || !grade) return;
     try { localStorage.setItem(PESO, JSON.stringify({ ...lerPeso(), [String(bitola)]: v })); } catch { /* sem armazenamento: vale só nesta conta */ }
@@ -149,7 +168,7 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
   async function exportar() {
     if (!grade) return;
     try {
-      const r = await api.ferros({ acao: 'exportar', grade, caminho: desenho?.caminho ?? null, peso: lerPeso() });
+      const r = await api.ferros({ acao: 'exportar', grade, caminho: desenho?.caminho ?? null, peso: lerPeso(), ca60: lerCa60() });
       if (r.bloqueado) setCalculo(old => ({ ...old, bloqueado: r.bloqueado }));
       setPlanilha(r.arquivo ?? null);
     } catch (erro) { onError(erro); }
@@ -201,13 +220,12 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
           <tbody>{tLista.visiveis.map(i => <tr key={i.posicao}><td>{i.posicao}</td><td className="num"><span>{i.bitola}</span></td><td className="num"><span>{i.quantidade}</span></td>
             <td className="num"><span>{i.comprimento_unit_cm}</span></td><td className="num"><span>{i.comprimento_total_cm}</span></td><td><small className="ferros-difere">{i.avisos.join('; ')}</small></td></tr>)}</tbody>
         </table>
-        <table className="ferros-tabela"><caption>RESUMO CA-50</caption>
-          <thead><tr>{tResumo.cabecalho}</tr></thead>
-          <tbody>{tResumo.visiveis.map(r => <tr key={r.bitola}><td className="num"><span>{r.bitola}</span></td><td className="num"><span>{kg(r.comprimento_m)}</span></td>
-            <td className="num"><Campo key={`${r.bitola}-${r.peso_por_m}`} label={`kg/m de ${r.bitola}`} valor={r.peso_por_m} onSalvar={t => mudarPeso(r.bitola, t)} /></td><td className="num"><span>{kg(r.peso_kg)}</span></td></tr>)}</tbody>
-          {calculo.total !== undefined && <tfoot><tr className="ferros-total-linha"><td colSpan={3}>Total</td><td className="num"><span>{kg(calculo.total)}</span></td></tr></tfoot>}
-        </table>
+        <div className="ferros-resumos">{resumos.map(b => <TabelaResumo key={b.aco} bloco={b} onPeso={mudarPeso} />)}</div>
       </div>}
+      <details className="ferros-config"><summary>Configurações da página</summary>
+        <label className="ferros-lote">Bitolas CA-60
+          <Campo key={bitolas(calculo.ca60)} label="Bitolas CA-60" valor={bitolas(calculo.ca60)} onSalvar={mudarCa60} largura="w-40" /></label>
+      </details>
       <div className="ferros-lote">
         <Button size="sm" disabled={!calculo.lista || !!calculo.bloqueado} onClick={() => void exportar()}>Gerar planilha FERRO</Button>
         {planilha && <Button size="sm" variant="ghost" onClick={() => void api.openResult(planilha, false).catch(onError)}>Abrir {planilha.split(/[\\/]/).pop()}</Button>}

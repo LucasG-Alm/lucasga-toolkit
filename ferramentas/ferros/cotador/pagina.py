@@ -8,7 +8,7 @@ from pathlib import Path
 
 from cotador.grade import Bloqueado, Grade, Linha, TextoNaoEntendido, gravar_memoria, lista_da_grade, montar_grade, ler_memoria
 from cotador.lista import classificar
-from cotador.resumo import PESO_POR_M, montar_resumo
+from cotador.resumo import CA60_PADRAO, PESO_POR_M, resumos_por_aco
 
 
 def _linha_para_json(l: Linha) -> dict:
@@ -77,11 +77,19 @@ def _tabela_peso(peso: dict | None) -> dict[float, float]:
     return {**PESO_POR_M, **{float(k): float(v) for k, v in (peso or {}).items()}}
 
 
-def _calcular(grade: Grade, peso: dict | None) -> dict:
+def _ca60(pedido: dict) -> tuple[float, ...]:
+    return CA60_PADRAO if pedido.get("ca60") is None else tuple(float(b) for b in pedido["ca60"])
+
+
+def _item_resumo(r) -> dict:
+    return {"bitola": r.bitola, "comprimento_m": r.comprimento_m, "peso_por_m": r.peso_por_m, "peso_kg": r.peso_kg}
+
+
+def _calcular(grade: Grade, peso: dict | None, ca60: tuple[float, ...] = CA60_PADRAO) -> dict:
     tabela = _tabela_peso(peso)
     try:
         itens = lista_da_grade(grade)
-        resumo, total = montar_resumo(itens, tabela)
+        blocos = resumos_por_aco(itens, tabela, ca60)
     except Bloqueado as erro:
         return {"bloqueado": str(erro)}
     except KeyError as erro:
@@ -90,22 +98,24 @@ def _calcular(grade: Grade, peso: dict | None) -> dict:
         "lista": [{"posicao": f"{i.letra}{i.numero}", "bitola": i.bitola, "comprimento_unit_cm": i.comprimento_unit_cm,
                    "quantidade": i.quantidade, "comprimento_total_cm": i.comprimento_total_cm, "avisos": list(i.avisos)}
                   for i in itens],
-        "resumo": [{"bitola": r.bitola, "comprimento_m": r.comprimento_m, "peso_por_m": r.peso_por_m, "peso_kg": r.peso_kg}
-                   for r in resumo],
-        "total": total,
+        "resumos": [{"aco": b["aco"], "linhas": [_item_resumo(r) for r in b["linhas"]], "total": b["total"]} for b in blocos],
+        # resumo/total: tudo junto, para a tela antiga e para conferência
+        "resumo": [_item_resumo(r) for b in blocos for r in b["linhas"]],
+        "total": round(sum(b["total"] for b in blocos), 2),
+        "ca60": list(ca60),
     }
 
 
 def executar(pedido: dict) -> dict:
     acao = pedido.get("acao")
     if acao == "calcular":
-        return _calcular(grade_de_json(pedido["grade"]), pedido.get("peso"))
+        return _calcular(grade_de_json(pedido["grade"]), pedido.get("peso"), _ca60(pedido))
     if acao == "exportar":
         from cotador.excel import PlanilhaAberta, gerar_planilha
 
         caminho = pedido.get("caminho")
         try:
-            saida = gerar_planilha(grade_de_json(pedido["grade"]), _tabela_peso(pedido.get("peso")), Path(caminho) if caminho else None)
+            saida = gerar_planilha(grade_de_json(pedido["grade"]), _tabela_peso(pedido.get("peso")), Path(caminho) if caminho else None, _ca60(pedido))
         except (Bloqueado, PlanilhaAberta, ValueError) as erro:
             return {"bloqueado": str(erro)}
         except KeyError as erro:

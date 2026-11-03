@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from cotador.lista import ItemLista
 
 PESO_POR_M: Mapping[float, float] = {
+    4.2: 0.109,  # CA-60, NBR 7480 (R-FER-PES-004)
+    5.0: 0.154,  # CA-60, NBR 7480
     6.3: 0.25,
     8.0: 0.40,
     10.0: 0.617,
@@ -64,3 +66,22 @@ def montar_resumo(
             )
         )
     return linhas, round(sum(l.peso_kg for l in linhas), 2)
+
+
+CA60_PADRAO: tuple[float, ...] = (4.2, 5.0)
+"""Bitolas que vao para o RESUMO CA-60 (R-FER-PES-003); a pagina pode trocar a lista."""
+
+
+def resumos_por_aco(
+    itens: Sequence[ItemLista],
+    peso_por_m: Mapping[float, float] | None = None,
+    ca60: Sequence[float] = CA60_PADRAO,
+) -> list[dict]:
+    """Um RESUMO por aco: CA-50 sempre que houver bitola dele, CA-60 so se houver."""
+    ca60 = {float(b) for b in ca60}
+    blocos = []
+    for aco, grupo in (("CA-50", [i for i in itens if i.bitola not in ca60]), ("CA-60", [i for i in itens if i.bitola in ca60])):
+        if grupo:
+            linhas, total = montar_resumo(grupo, peso_por_m)
+            blocos.append({"aco": aco, "linhas": linhas, "total": total})
+    return blocos

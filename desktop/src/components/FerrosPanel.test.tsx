@@ -222,3 +222,18 @@ test('a grade aparece assim que a leitura termina, antes do cálculo (R-FER-UI-0
   await act(async () => { soltarCalculo({ lista: [], resumo: [], total: 12.5 }); });
   await waitFor(() => expect(screen.queryByText('Calculando…')).toBeNull());
 });
+
+test('um RESUMO por aço e a lista de bitolas CA-60 vai no pedido (R-FER-PES-003)', async () => {
+  const r50 = { bitola: 10, comprimento_m: 1, peso_por_m: 0.617, peso_kg: 0.62 }, r60 = { bitola: 5, comprimento_m: 10, peso_por_m: 0.154, peso_kg: 1.54 };
+  const { api, ferros } = setup(p => p.acao === 'ler' ? lido : p.acao === 'calcular'
+    ? { lista: [], resumo: [r50, r60], total: 2.16, resumos: [{ aco: 'CA-50', linhas: [r50], total: 0.62 }, { aco: 'CA-60', linhas: [r60], total: 1.54 }], ca60: [4.2, 5] } : { avisos: [] });
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
+  expect(await screen.findByText('RESUMO CA-60')).toBeTruthy();
+  expect(screen.getByText('RESUMO CA-50')).toBeTruthy();
+  expect(screen.getAllByRole('row', { name: /^Total/ }).map(r => r.textContent)).toEqual(['Total0,62', 'Total1,54']);
+  const campo = screen.getByLabelText('Bitolas CA-60');
+  expect((campo as HTMLInputElement).value).toBe('4,2; 5,0');
+  await userEvent.clear(campo); await userEvent.type(campo, '5; 6,3'); await userEvent.tab();
+  await waitFor(() => expect(ferros.mock.calls.map(c => c[0]).filter(p => p.acao === 'calcular').pop()!.ca60).toEqual([5, 6.3]));
+});
