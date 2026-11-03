@@ -100,3 +100,34 @@ def test_progresso_conta_cada_objeto_lido():
     chamadas = []
     assert cad_aberto.textos_de(None, [_Linha(), _Linha(), _Linha()], progresso=lambda *a: chamadas.append(a)) == []
     assert chamadas == [("lendo", 1, 3), ("lendo", 2, 3), ("lendo", 3, 3)]
+
+
+def test_topo_da_tabela_anterior_e_o_ponto_da_nova():
+    """R-FER-PLT-008: substituir usa o canto da tabela mais alta (a LISTA)."""
+    class T:
+        def __init__(self, y): self.InsertionPoint = (5.0, y, 0.0)
+    assert cad_aberto.ponto_das_existentes([T(1.0), T(9.5), T(4.0)]) == (5.0, 9.5)
+
+
+@autocad
+def test_plota_tabelas_com_marca_e_substitui_no_mesmo_lugar(desenho_temporario):
+    """R-FER-PLT-001 / 003 / 006 / 007 / 008"""
+    from cotador.grade import TextoLido, montar_grade
+    from cotador.plotagem import planejar
+    from cotador.resumo import PESO_POR_M
+
+    app, doc = desenho_temporario
+    g = montar_grade([TextoLido("A", "3 N1 c/10", "L", 0, 0), TextoLido("B", "1N2 Ø10 c=100", "L", 0, 0), TextoLido("C", "10N3 Ø5.0 c=100", "L", 0, 0)])
+    quadros = planejar(g, PESO_POR_M, escala=50)
+    r = cad_aberto.plotar(app, quadros, (100.0, 50.0), escala=50, layer="TABELA", estilo="NAO_EXISTE")
+    assert any("NAO_EXISTE" in a for a in r["avisos"])
+    tabelas = cad_aberto.tabelas_existentes(doc)
+    assert len(tabelas) == 3 and all(t.Layer == "TABELA" for t in tabelas)
+    lista = max(tabelas, key=lambda t: t.InsertionPoint[1])
+    assert tuple(round(v, 6) for v in lista.InsertionPoint[:2]) == (100.0, 50.0)
+    assert "\C1;" in lista.GetText(3, 1) and lista.GetText(0, 0) == "LISTA DE FERROS"
+
+    cad_aberto.plotar(app, quadros, cad_aberto.ponto_das_existentes(tabelas), escala=50, apagar=tabelas)
+    depois = cad_aberto.tabelas_existentes(doc)
+    assert len(depois) == 3
+    assert tuple(round(v, 6) for v in max(depois, key=lambda t: t.InsertionPoint[1]).InsertionPoint[:2]) == (100.0, 50.0)

@@ -156,3 +156,104 @@ def ler(app, progresso: Callable | None = None) -> tuple[InfoDesenho, list[Texto
 def zoom(app, x: float, y: float, altura: float = 2.0) -> None:
     """R-FER-CAD-007"""
     com_espera(lambda: app.ZoomCenter(ponto(x, y), altura))
+
+
+# --- Etapa 2: plotar as tabelas (R-FER-PLT-*) ---------------------------------
+
+APP_XDATA = "LUCASGA_FERROS"
+_MEIO_CENTRO = 5  # acMiddleCenter
+
+
+def _variant(tipo, valores):
+    import pythoncom
+    import win32com.client
+
+    return win32com.client.VARIANT(pythoncom.VT_ARRAY | tipo, valores)
+
+
+def tabelas_existentes(doc) -> list:
+    """TABLEs que o app plotou neste desenho (marcadas com XData)."""
+    import pythoncom
+
+    nome = "LUCASGA_FERROS_TABELAS"
+    try:
+        doc.SelectionSets.Item(nome).Delete()
+    except Exception:
+        pass
+    selecao = doc.SelectionSets.Add(nome)
+    selecao.Select(5, None, None, _variant(pythoncom.VT_I2, [0, 1001]), _variant(pythoncom.VT_VARIANT, ["ACAD_TABLE", APP_XDATA]))
+    tabelas = list(selecao)
+    selecao.Delete()
+    return tabelas
+
+
+def ponto_das_existentes(tabelas) -> tuple[float, float]:
+    """A tabela mais alta e a LISTA: a nova entra no canto dela."""
+    topo = max(tabelas, key=lambda t: t.InsertionPoint[1])
+    return topo.InsertionPoint[0], topo.InsertionPoint[1]
+
+
+def pedir_ponto(app) -> tuple[float, float] | None:
+    """Clique no AutoCAD; Esc devolve None."""
+    _para_frente(app)
+    doc = app.ActiveDocument
+    try:
+        p = doc.Utility.GetPoint(ponto(0, 0), "\nCanto superior esquerdo da LISTA DE FERROS (Esc cancela): ")
+    except Exception:
+        return None
+    return p[0], p[1]
+
+
+def plotar(app, quadros, canto: tuple[float, float], escala: float, layer: str = "TABELA", estilo: str = "R80R", apagar=()) -> dict:
+    """Uma TABLE por quadro, tudo entre marcas de UNDO (um Ctrl+Z desfaz)."""
+    import pythoncom
+
+    from cotador.plotagem import posicoes
+
+    doc = app.ActiveDocument
+    ms = doc.ModelSpace
+    avisos = []
+    com_espera(lambda: doc.StartUndoMark())
+    try:
+        for t in apagar:
+            t.Delete()
+        try:
+            doc.Layers.Item(layer)
+        except Exception:
+            doc.Layers.Add(layer)
+        try:
+            doc.TextStyles.Item(estilo)
+        except Exception:
+            avisos.append(f"Estilo de texto {estilo} não existe neste desenho: usei {doc.ActiveTextStyle.Name}.")
+            estilo = doc.ActiveTextStyle.Name
+        try:
+            doc.RegisteredApplications.Item(APP_XDATA)
+        except Exception:
+            doc.RegisteredApplications.Add(APP_XDATA)
+
+        for q, (x, y) in zip(quadros, posicoes(quadros, canto, escala)):
+            t = ms.AddTable(ponto(x, y), len(q.linhas), len(q.larguras), q.alturas[0], q.larguras[0])
+            t.RegenerateTableSuppressed = True
+            t.Layer = layer
+            t.VertCellMargin = q.altura_texto * 0.25
+            t.HorzCellMargin = q.altura_texto * 0.25
+            for c, w in enumerate(q.larguras):
+                t.SetColumnWidth(c, w)
+            for r, h in enumerate(q.alturas):
+                t.SetRowHeight(r, h)
+            for r0, r1, c0, c1 in q.mesclar:
+                t.MergeCells(r0, r1, c0, c1)
+            for r, linha in enumerate(q.linhas):
+                for c, cel in enumerate(linha):
+                    if not cel.texto:
+                        continue  # celula vazia ou coberta por mescla
+                    t.SetCellTextStyle(r, c, estilo)
+                    t.SetCellTextHeight(r, c, q.altura_titulo if r == 0 else q.altura_texto)
+                    t.SetCellAlignment(r, c, _MEIO_CENTRO)
+                    # vermelho por codigo MTEXT: nao depende da versao do AcCmColor (R-FER-PLT-006)
+                    t.SetText(r, c, "{\\C1;" + cel.texto + "}" if cel.vermelho else cel.texto)
+            t.SetXData(_variant(pythoncom.VT_I2, [1001, 1000]), _variant(pythoncom.VT_VARIANT, [APP_XDATA, q.nome]))
+            t.RegenerateTableSuppressed = False
+    finally:
+        com_espera(lambda: doc.EndUndoMark())
+    return {"avisos": avisos}
