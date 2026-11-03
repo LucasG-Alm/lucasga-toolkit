@@ -65,7 +65,8 @@ export interface FerrosLinha {
 export interface FerrosGrade { linhas: FerrosLinha[]; nao_entendi: {handle: string; texto: string; x: number; y: number}[]; multiplicadores: Record<string, number> }
 export interface FerrosDesenho { nome: string; caminho: string | null }
 export interface FerrosPedido {
-  acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar' | 'exportar';
+  acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar' | 'exportar' | 'plotar';
+  escala?: number; layer?: string; estilo?: string; substituir?: boolean;
   grade?: FerrosGrade; caminho?: string | null; x?: number; y?: number; peso?: Record<string, number>;
   modo?: 'nova' | 'adicionar' | 'remover'; elemento?: string; ca60?: number[];
 }
@@ -75,7 +76,7 @@ export interface FerrosResumoAco { aco: string; linhas: FerrosItemResumo[]; tota
 export interface FerrosResposta {
   desenho?: FerrosDesenho; grade?: FerrosGrade; avisos?: string[]; cancelado?: boolean;
   lista?: FerrosItemLista[]; resumo?: FerrosItemResumo[]; total?: number; bloqueado?: string; arquivo?: string;
-  resumos?: FerrosResumoAco[]; ca60?: number[];
+  resumos?: FerrosResumoAco[]; ca60?: number[]; existe?: number; plotado?: number;
 }
 export interface FerrosProgresso { fase: 'selecao' | 'lendo' | 'calculando'; i: number; n: number }
 export interface ToolkitAPI {

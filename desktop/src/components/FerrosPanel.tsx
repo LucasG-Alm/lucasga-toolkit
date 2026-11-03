@@ -86,6 +86,11 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
   const [elementoSelecao, setElementoSelecao] = useState('');
   const [lendo, setLendo] = useState(false);
   const [planilha, setPlanilha] = useState<string | null>(null);
+  const [escala, setEscala] = useState('50');
+  const [layerTabela, setLayerTabela] = useState('TABELA');
+  const [estiloTabela, setEstiloTabela] = useState('R80R');
+  const [jaExiste, setJaExiste] = useState(0);
+  const [plotando, setPlotando] = useState(false);
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [progresso, setProgresso] = useState<FerrosProgresso | null>(null);
   const [calculando, setCalculando] = useState(false);
@@ -165,6 +170,18 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
     try { localStorage.setItem(PESO, JSON.stringify({ ...lerPeso(), [String(bitola)]: v })); } catch { /* sem armazenamento: vale só nesta conta */ }
     void atualizar(grade);
   }
+  // R-FER-PLT-001/008: clica o ponto no AutoCAD; se já existe tabela do app, pergunta antes.
+  async function plotar(substituir?: boolean) {
+    if (!grade) return;
+    setJaExiste(0); setPlotando(true);
+    try {
+      const r = await api.ferros({ acao: 'plotar', grade, caminho: desenho?.caminho ?? null, peso: lerPeso(), ca60: lerCa60(),
+        escala: numero(escala) ?? 50, layer: layerTabela.trim() || 'TABELA', estilo: estiloTabela.trim() || 'R80R', substituir });
+      if (r.existe) { setJaExiste(r.existe); return; }
+      if (r.bloqueado) { setAvisos([r.bloqueado]); return; }
+      if (r.plotado) setAvisos([`Tabela plotada (${r.plotado} quadros). Ctrl+Z no AutoCAD desfaz.`, ...(r.avisos ?? [])]);
+    } catch (erro) { onError(erro); } finally { setPlotando(false); }
+  }
   async function exportar() {
     if (!grade) return;
     try {
@@ -230,6 +247,17 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
         <Button size="sm" disabled={!calculo.lista || !!calculo.bloqueado} onClick={() => void exportar()}>Gerar planilha FERRO</Button>
         {planilha && <Button size="sm" variant="ghost" onClick={() => void api.openResult(planilha, false).catch(onError)}>Abrir {planilha.split(/[\\/]/).pop()}</Button>}
       </div>
+
+      <div className="ferros-lote">
+        <label>Escala 1:<input aria-label="Escala 1:" className="ferros-campo w-12" value={escala} onChange={e => setEscala(e.target.value)} /></label>
+        <label>Layer <input aria-label="Layer da tabela" className="ferros-campo w-16" value={layerTabela} onChange={e => setLayerTabela(e.target.value)} /></label>
+        <label>Estilo <input aria-label="Estilo de texto da tabela" className="ferros-campo w-16" value={estiloTabela} onChange={e => setEstiloTabela(e.target.value)} /></label>
+        <Button size="sm" disabled={!grade.linhas.length || plotando} onClick={() => void plotar()}>{plotando ? 'Clique o ponto no AutoCAD…' : 'Plotar tabela no AutoCAD'}</Button>
+      </div>
+      {jaExiste > 0 && <div className="warnings" role="alert">Já existe tabela de ferros neste desenho ({jaExiste} quadros).
+        <Button size="sm" variant="outline" onClick={() => void plotar(true)}>Substituir</Button>
+        <Button size="sm" variant="ghost" onClick={() => void plotar(false)}>Nova (clicar o ponto)</Button>
+        <Button size="sm" variant="ghost" onClick={() => setJaExiste(0)}>Cancelar</Button></div>}
 
       {grade.nao_entendi.length > 0 && <details open className="ferros-nao"><summary>Não entendi ({grade.nao_entendi.length})</summary>
         {grade.nao_entendi.map(n => <div key={n.handle} className="ferros-nao-linha"><span>{n.texto}</span>

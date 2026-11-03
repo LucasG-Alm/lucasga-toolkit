@@ -237,3 +237,21 @@ test('um RESUMO por aço e a lista de bitolas CA-60 vai no pedido (R-FER-PES-003
   await userEvent.clear(campo); await userEvent.type(campo, '5; 6,3'); await userEvent.tab();
   await waitFor(() => expect(ferros.mock.calls.map(c => c[0]).filter(p => p.acao === 'calcular').pop()!.ca60).toEqual([5, 6.3]));
 });
+
+test('plotar tabela: escala 1:50, pergunta se já existe e substitui (R-FER-PLT-001 / R-FER-PLT-008)', async () => {
+  let existe = true;
+  const { api, ferros } = setup(p => p.acao === 'ler' ? lido
+    : p.acao === 'plotar' ? (existe && p.substituir === undefined ? { existe: 3 } : { plotado: 3, avisos: [] })
+    : { lista: [], resumo: [], total: 0, avisos: [] });
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
+  await screen.findByText('2x4N11 Ø12.5 c=391');
+  expect((screen.getByLabelText('Escala 1:') as HTMLInputElement).value).toBe('50');
+  await userEvent.click(screen.getByRole('button', { name: 'Plotar tabela no AutoCAD' }));
+  await waitFor(() => expect(ferros).toHaveBeenCalledWith(expect.objectContaining({ acao: 'plotar', escala: 50, layer: 'TABELA', estilo: 'R80R' })));
+  expect(await screen.findByText(/Já existe tabela de ferros neste desenho/)).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: 'Substituir' }));
+  await waitFor(() => expect(ferros).toHaveBeenCalledWith(expect.objectContaining({ acao: 'plotar', substituir: true })));
+  expect(await screen.findByText(/Tabela plotada \(3 quadros\)/)).toBeTruthy();
+  existe = false;
+});

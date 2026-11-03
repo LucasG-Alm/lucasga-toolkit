@@ -124,3 +124,54 @@ def test_calcular_separa_resumo_por_aco():
     assert r["ca60"] == [4.2, 5.0]
     so50 = executar({"acao": "calcular", "grade": grade_json("1N1 Ø10 c=100", "10N2 Ø5.0 c=100"), "ca60": []})
     assert [b["aco"] for b in so50["resumos"]] == ["CA-50"]
+
+
+class _CadFalso:
+    """Fluxo da acao plotar sem AutoCAD; a escrita real e testada em test_cad_aberto (FERROS_AUTOCAD=1)."""
+
+    def __init__(self, caminho="C:/obra/p.dwg", existentes=(), clique=(1.0, 2.0)):
+        from cotador.cad_aberto import InfoDesenho
+        self.info = InfoDesenho("p.dwg", None if caminho is None else __import__("pathlib").Path(caminho))
+        self.existentes, self.clique, self.plotados = list(existentes), clique, []
+
+    def instalar(self, monkeypatch):
+        from cotador import cad_aberto
+        monkeypatch.setattr(cad_aberto, "conectar", lambda: self)
+        monkeypatch.setattr(cad_aberto, "desenho_ativo", lambda app: self.info)
+        monkeypatch.setattr(cad_aberto, "tabelas_existentes", lambda doc: self.existentes)
+        monkeypatch.setattr(cad_aberto, "ponto_das_existentes", lambda t: (7.0, 8.0))
+        monkeypatch.setattr(cad_aberto, "pedir_ponto", lambda app: self.clique)
+        monkeypatch.setattr(cad_aberto, "plotar", lambda app, q, canto, escala, layer, estilo, apagar: self.plotados.append((canto, escala, layer, estilo, list(apagar))) or {"avisos": []})
+        self.ActiveDocument = object()
+        return self
+
+
+def _plotar(**extra):
+    import pathlib
+    return executar({"acao": "plotar", "grade": grade_json("1N2 Ø10 c=100"), "caminho": str(pathlib.Path("C:/obra/p.dwg")), "escala": 50, **extra})
+
+
+def test_plotar_no_ponto_clicado_com_escala_layer_estilo(monkeypatch):
+    """R-FER-PLT-001 / R-FER-PLT-002 / R-FER-PLT-005"""
+    cad = _CadFalso().instalar(monkeypatch)
+    assert _plotar(layer="TAB", estilo="SIMPLEX") == {"plotado": 2, "avisos": []}
+    assert cad.plotados == [((1.0, 2.0), 50.0, "TAB", "SIMPLEX", [])]
+
+
+def test_plotar_pergunta_se_ja_existe_e_substitui_no_mesmo_canto(monkeypatch):
+    """R-FER-PLT-008"""
+    cad = _CadFalso(existentes=["T1", "T2"]).instalar(monkeypatch)
+    assert _plotar() == {"existe": 2}
+    assert cad.plotados == []
+    _plotar(substituir=True)
+    assert cad.plotados[-1][0] == (7.0, 8.0) and cad.plotados[-1][4] == ["T1", "T2"]
+    _plotar(substituir=False)
+    assert cad.plotados[-1][0] == (1.0, 2.0) and cad.plotados[-1][4] == []
+
+
+def test_plotar_esc_cancela_e_outro_desenho_bloqueia(monkeypatch):
+    """R-FER-PLT-001 / R-FER-CAD-006"""
+    _CadFalso(clique=None).instalar(monkeypatch)
+    assert _plotar() == {"cancelado": True}
+    _CadFalso(caminho="C:/outra/q.dwg").instalar(monkeypatch)
+    assert "Desenho diferente" in _plotar()["bloqueado"]

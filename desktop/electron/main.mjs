@@ -50,7 +50,7 @@ const locationService = new LocationService({
   cacheContext:async()=>JSON.stringify([await readSettings(settingsFile),googleKey.revision]),
   execute:async request=>(await locationBridge(request)).location,
 });
-const acoesFerros = new Set(['ler', 'desenho', 'zoom', 'calcular', 'gravar', 'exportar']);
+const acoesFerros = new Set(['ler', 'desenho', 'zoom', 'calcular', 'gravar', 'exportar', 'plotar']);
 let desenhoFerros = null;
 let runtimeFerros = null; // checagem de Python/bibliotecas uma vez por sessão; Configurações zera
 const inspections = new Map();
@@ -207,7 +207,7 @@ function registerHandlers() {
   handle('ferros', async pedido => {
     if (!pedido || typeof pedido !== 'object' || !acoesFerros.has(pedido.acao)) throw Error('Pedido inválido.');
     // a memória só é gravada ao lado do desenho que o próprio AutoCAD informou
-    if (['gravar', 'exportar'].includes(pedido.acao) && pedido.caminho && pedido.caminho !== desenhoFerros) throw Error('Desenho diferente do lido. Leia de novo.');
+    if (['gravar', 'exportar', 'plotar'].includes(pedido.acao) && pedido.caminho && pedido.caminho !== desenhoFerros) throw Error('Desenho diferente do lido. Leia de novo.');
     if (!runtimeFerros) {
       const settings = await readSettings(settingsFile);
       const required = tools.find(t => t.id === 'ferros').requirements;

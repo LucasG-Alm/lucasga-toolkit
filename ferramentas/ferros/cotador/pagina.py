@@ -145,6 +145,28 @@ def executar(pedido: dict) -> dict:
     if acao == "desenho":
         info = cad_aberto.desenho_ativo(app)
         return {"desenho": {"nome": info.nome, "caminho": str(info.caminho) if info.caminho else None}}
+    if acao == "plotar":
+        from cotador.plotagem import planejar
+
+        info = cad_aberto.desenho_ativo(app)
+        if pedido.get("caminho") != (str(info.caminho) if info.caminho else None):
+            return {"bloqueado": "Desenho diferente do lido: faça uma nova seleção."}  # R-FER-CAD-006
+        escala = float(pedido.get("escala") or 50)
+        if escala <= 0:
+            return {"bloqueado": "Escala inválida: use 1:50, 1:25…"}
+        existentes = cad_aberto.tabelas_existentes(app.ActiveDocument)
+        substituir = pedido.get("substituir")
+        if existentes and substituir is None:
+            return {"existe": len(existentes)}  # a página pergunta (R-FER-PLT-008)
+        if existentes and substituir:
+            canto, apagar = cad_aberto.ponto_das_existentes(existentes), existentes
+        else:
+            canto, apagar = cad_aberto.pedir_ponto(app), ()
+            if canto is None:
+                return {"cancelado": True}
+        quadros = planejar(grade_de_json(pedido["grade"]), _tabela_peso(pedido.get("peso")), escala, _ca60(pedido))
+        r = cad_aberto.plotar(app, quadros, canto, escala, pedido.get("layer") or "TABELA", pedido.get("estilo") or "R80R", apagar)
+        return {"plotado": len(quadros), "avisos": r["avisos"]}
     if acao == "zoom":
         cad_aberto.zoom(app, float(pedido["x"]), float(pedido["y"]))
         return {}
