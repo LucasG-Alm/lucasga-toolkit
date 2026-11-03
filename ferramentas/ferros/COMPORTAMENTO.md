@@ -111,10 +111,13 @@ Sem tabela dinâmica: o resumo por posição é feito com fórmula. Não precisa
 
 | ID | Regra |
 |----|-------|
-| R-FER-PLT-001 | Você clica o ponto de inserção no AutoCAD; LISTA DE FERROS e RESUMO CA-50 entram desenhadas (grade + textos) a partir dele. |
+| R-FER-PLT-001 | Você clica no AutoCAD o canto superior esquerdo da LISTA DE FERROS; os quadros entram como objetos TABLE a partir dele. |
 | R-FER-PLT-002 | Layer e estilo de texto: padrões do `Config` (`TXT02`, `SIMPLEX`), editáveis na página. |
 | R-FER-PLT-003 | Tudo entre marcas de UNDO: um Ctrl+Z remove a tabela inteira. |
 | R-FER-PLT-004 | Plotar recebe os números da grade; não relê o desenho. |
+| R-FER-PLT-005 | Tamanho pela escala (padrão 1:50, preenchida à mão): no papel, texto 2 mm, título 3,2 mm, linha 4,5 mm, largura 72,7 mm (medidas da prancha de referência, que é 1:25). No desenho (em metros): mm × escala / 1000. |
+| R-FER-PLT-006 | Sai a lista inteira (filtro da tela não conta). Campo que falta vira "?" em vermelho (cor 1); o Total(cm) da linha também. Linha incompleta fica fora do RESUMO, e o TOTAL do resumo do aço afetado (ou de todos, se faltar o Ø) sai em vermelho com "(incompleto)". |
+| R-FER-PLT-007 | Uma TABLE por quadro, nesta ordem e de cima para baixo: LISTA DE FERROS, RESUMO CA-50, RESUMO CA-60 (se houver); distância 2 mm × escala entre elas. |
 
 ## Etapa 3 — Cotar ferros (pendente)
 
