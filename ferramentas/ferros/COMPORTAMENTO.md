@@ -58,6 +58,7 @@ Etapas: **1 Contar** (ler + grade + Excel FERRO) → **2 Plotar tabela** → **3
 | R-FER-LIS-004 | Quantidade editada na grade vale para lista, tabela e planilha; o desenho não muda e a linha mostra "difere do desenho". |
 | R-FER-LIS-005 | Bitola ou comprimento divergente dentro da mesma posição gera aviso na posição. |
 | R-FER-LIS-006 | Com campo vermelho, o RESUMO e a exportação ficam bloqueados até ser preenchido. |
+| R-FER-LIS-008 | Tipo da posição (alvenaria vertical, canaleta, viga, estribo…) é por posição, como o ×: padrão = layer do texto da primeira tag da posição; editável; fica no `.ferros.json`. Na LISTA plotada, linha cor 2 onde o Tipo muda de uma posição para a seguinte. |
 | R-FER-LIS-007 | Coluna Elemento começa com o layer do texto; editável, inclusive em várias linhas de uma vez. |
 
 ### Peso por metro
@@ -117,6 +118,7 @@ Sem tabela dinâmica: o resumo por posição é feito com fórmula. Não precisa
 | R-FER-PLT-004 | Plotar recebe os números da grade; não relê o desenho. |
 | R-FER-PLT-005 | Tamanho pela escala (padrão 1:50, preenchida à mão): no papel, texto 2 mm, título 3,2 mm, linha 4,5 mm, largura 72,7 mm (medidas da prancha de referência, que é 1:25). No desenho (em metros): mm × escala / 1000. |
 | R-FER-PLT-006 | Sai a lista inteira (filtro da tela não conta). Campo que falta vira "?" em vermelho (cor 1); o Total(cm) da linha também. Linha incompleta fica fora do RESUMO, e o TOTAL do resumo do aço afetado (ou de todos, se faltar o Ø) sai em vermelho com "(incompleto)". |
+| R-FER-PLT-009 | Acabamento igual à tabela aprovada (cor = pena): títulos e "TOTAL:" cor 4; números alinhados à direita (coluna N e cabeçalhos centralizados); contorno, linha do título, linha do cabeçalho, divisória da 1ª coluna e linha acima do total cor 4; divisórias Ø│Q│COMPRIMENTO (LISTA) e 2ª│3ª coluna (RESUMO) e a linha sob COMPRIMENTO cor 2; demais linhas cor 7. Cabeçalho do Ø em duas linhas (Ø / (mm)). |
 | R-FER-PLT-008 | As tabelas levam XData `LUCASGA_FERROS`. Plotar de novo num desenho que já tem: a página pergunta; substituindo, apaga as antigas e a nova entra no canto da antiga mais alta (a LISTA), sem clicar ponto. Layer inexistente é criada; estilo de texto inexistente: usa o atual e avisa. |
 | R-FER-PLT-007 | Uma TABLE por quadro, nesta ordem e de cima para baixo: LISTA DE FERROS, RESUMO CA-50, RESUMO CA-60 (se houver); distância 2 mm × escala entre elas. |
 

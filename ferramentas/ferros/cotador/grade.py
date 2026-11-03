@@ -58,6 +58,14 @@ class Grade:
     linhas: list[Linha]
     nao_entendi: list[TextoNaoEntendido]
     multiplicadores: dict[int, int] = field(default_factory=dict)
+    tipos: dict[int, str] = field(default_factory=dict)  # so o que o usuario escreveu (R-FER-LIS-008)
+
+
+def tipo_de(grade: Grade, numero: int) -> str:
+    """Tipo da posicao: o escrito pelo usuario, ou o layer da primeira tag dela."""
+    if numero in grade.tipos:
+        return grade.tipos[numero]
+    return next((l.layer for l in grade.linhas if l.tag.numero == numero), "")
 
 
 def montar_grade(lidos: Sequence[TextoLido], memoria: Mapping | None = None) -> Grade:
@@ -86,7 +94,8 @@ def montar_grade(lidos: Sequence[TextoLido], memoria: Mapping | None = None) -> 
         posicao = {h: i for i, h in enumerate(memoria["ordem"])}
         linhas.sort(key=lambda l: posicao.get(l.handle, len(posicao)))
     multiplicadores = {int(k): int(v) for k, v in memoria.get("multiplicadores", {}).items()}
-    return Grade(linhas, nao_entendi, multiplicadores)
+    tipos = {int(k): str(v) for k, v in memoria.get("tipos", {}).items()}
+    return Grade(linhas, nao_entendi, multiplicadores, tipos)
 
 
 def _tag_efetiva(linha: Linha) -> TagLida:
@@ -140,7 +149,7 @@ def gravar_memoria(dwg: Path | None, grade: Grade) -> list[str]:
     sumiram = sorted(h for h in ler_memoria(dwg).get("tags", {}) if h not in presentes)
     _arquivo(dwg).write_text(json.dumps(
         {"multiplicadores": {str(k): v for k, v in grade.multiplicadores.items() if v != 1}, "tags": tags,
-         "ordem": [l.handle for l in grade.linhas]},
+         "ordem": [l.handle for l in grade.linhas], "tipos": {str(k): v for k, v in grade.tipos.items()}},
         ensure_ascii=False, indent=2), "utf-8")
     if sumiram:
         return [f"{len(sumiram)} tag(s) não estão mais no desenho e saíram da memória: {', '.join(sumiram)}"]

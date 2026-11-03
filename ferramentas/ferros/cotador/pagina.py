@@ -6,7 +6,7 @@ Acoes: ler (AutoCAD), zoom (AutoCAD), calcular, gravar (memoria ao lado do DWG),
 import json
 from pathlib import Path
 
-from cotador.grade import Bloqueado, Grade, Linha, TextoNaoEntendido, gravar_memoria, lista_da_grade, montar_grade, ler_memoria
+from cotador.grade import Bloqueado, Grade, Linha, TextoNaoEntendido, gravar_memoria, lista_da_grade, montar_grade, ler_memoria, tipo_de
 from cotador.lista import classificar
 from cotador.resumo import CA60_PADRAO, PESO_POR_M, resumos_por_aco
 
@@ -22,9 +22,10 @@ def _linha_para_json(l: Linha) -> dict:
 
 def grade_para_json(grade: Grade) -> dict:
     return {
-        "linhas": [_linha_para_json(l) for l in grade.linhas],
+        "linhas": [{**_linha_para_json(l), "tipo": tipo_de(grade, l.tag.numero)} for l in grade.linhas],
         "nao_entendi": [{"handle": n.handle, "texto": n.texto, "x": n.x, "y": n.y} for n in grade.nao_entendi],
         "multiplicadores": {str(k): v for k, v in grade.multiplicadores.items()},
+        "tipos": {str(k): v for k, v in grade.tipos.items()},
     }
 
 
@@ -39,7 +40,8 @@ def grade_de_json(dados: dict) -> Grade:
         ))
     nao = [TextoNaoEntendido(n["handle"], n["texto"], n["x"], n["y"]) for n in dados.get("nao_entendi", [])]
     mult = {int(k): int(v) for k, v in dados.get("multiplicadores", {}).items() if int(v) != 1}
-    return Grade(linhas, nao, mult)
+    tipos = {int(k): str(v) for k, v in dados.get("tipos", {}).items()}
+    return Grade(linhas, nao, mult, tipos)
 
 
 PROGRESSO = "@@FERROS_PROGRESSO@@"
@@ -63,14 +65,14 @@ def juntar_selecao(grade: Grade, nova: Grade, modo: str, elemento: str | None) -
     if modo == "remover":
         fora = {l.handle for l in nova.linhas} | {n.handle for n in nova.nao_entendi}
         return Grade([l for l in grade.linhas if l.handle not in fora],
-                     [n for n in grade.nao_entendi if n.handle not in fora], dict(grade.multiplicadores))
+                     [n for n in grade.nao_entendi if n.handle not in fora], dict(grade.multiplicadores), dict(grade.tipos))
     tem = {l.handle for l in grade.linhas} | {n.handle for n in grade.nao_entendi}
     novas = [l for l in nova.linhas if l.handle not in tem]
     if elemento:
         for l in novas:
             l.elemento = elemento
     return Grade(grade.linhas + novas, grade.nao_entendi + [n for n in nova.nao_entendi if n.handle not in tem],
-                 dict(grade.multiplicadores))
+                 dict(grade.multiplicadores), dict(grade.tipos))
 
 
 def _tabela_peso(peso: dict | None) -> dict[float, float]:

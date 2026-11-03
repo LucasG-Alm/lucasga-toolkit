@@ -175,3 +175,12 @@ def test_plotar_esc_cancela_e_outro_desenho_bloqueia(monkeypatch):
     assert _plotar() == {"cancelado": True}
     _CadFalso(caminho="C:/outra/q.dwg").instalar(monkeypatch)
     assert "Desenho diferente" in _plotar()["bloqueado"]
+
+
+def test_tipo_vai_e_volta_no_json():
+    """R-FER-LIS-008"""
+    g = montar_grade([TextoLido("A1", "2N1 Ø10 c=100", "VERT", 0.0, 0.0)])
+    g.tipos[1] = "ALVENARIA"
+    dados = json.loads(json.dumps(grade_para_json(g)))
+    assert dados["linhas"][0]["tipo"] == "ALVENARIA"
+    assert grade_de_json(dados).tipos == {1: "ALVENARIA"}

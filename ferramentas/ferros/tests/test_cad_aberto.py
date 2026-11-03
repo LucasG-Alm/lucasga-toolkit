@@ -125,7 +125,13 @@ def test_plota_tabelas_com_marca_e_substitui_no_mesmo_lugar(desenho_temporario):
     assert len(tabelas) == 3 and all(t.Layer == "TABELA" for t in tabelas)
     lista = max(tabelas, key=lambda t: t.InsertionPoint[1])
     assert tuple(round(v, 6) for v in lista.InsertionPoint[:2]) == (100.0, 50.0)
-    assert "\C1;" in lista.GetText(3, 1) and lista.GetText(0, 0) == "LISTA DE FERROS"
+    assert "\\C1;" in lista.GetText(3, 1) and "LISTA DE FERROS" in lista.GetText(0, 0)
+    # R-FER-PLT-009: acabamento da tabela aprovada
+    assert "\\C4;" in lista.GetText(0, 0)
+    assert lista.GetCellAlignment(3, 0) == 5 and lista.GetCellAlignment(4, 1) == 6
+    assert lista.GetCellGridColor(0, 0, 1).ColorIndex == 4      # contorno
+    assert lista.GetCellGridColor(4, 2, 2).ColorIndex == 2      # divisória Q│COMPRIMENTO
+    assert lista.GetCellGridColor(4, 3, 1).ColorIndex == 7      # entre posições
 
     cad_aberto.plotar(app, quadros, cad_aberto.ponto_das_existentes(tabelas), escala=50, apagar=tabelas)
     depois = cad_aberto.tabelas_existentes(doc)

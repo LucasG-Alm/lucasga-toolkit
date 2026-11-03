@@ -162,6 +162,22 @@ def zoom(app, x: float, y: float, altura: float = 2.0) -> None:
 
 APP_XDATA = "LUCASGA_FERROS"
 _MEIO_CENTRO = 5  # acMiddleCenter
+_MEIO_DIREITA = 6  # acMiddleRight
+_TOPO, _DIREITA, _BAIXO, _ESQUERDA = 1, 2, 4, 8  # AcCellEdgeMask
+
+
+def _cor_aci(app):
+    """AcCmColor da versao aberta: o ProgID muda a cada versao (AcCmColor.25, .26...)."""
+    return app.GetInterfaceObject(f"AutoCAD.AcCmColor.{app.Version.split('.')[0]}")
+
+
+def _bordas(q, r: int, c: int) -> dict[int, int]:
+    """cor -> mascara das bordas da celula com essa cor (R-FER-PLT-009)."""
+    lados = {_TOPO: q.horizontais[r][c], _BAIXO: q.horizontais[r + 1][c], _ESQUERDA: q.verticais[r][c], _DIREITA: q.verticais[r][c + 1]}
+    por_cor: dict[int, int] = {}
+    for lado, cor in lados.items():
+        por_cor[cor] = por_cor.get(cor, 0) | lado
+    return por_cor
 
 
 def _variant(tipo, valores):
@@ -231,12 +247,13 @@ def plotar(app, quadros, canto: tuple[float, float], escala: float, layer: str =
         except Exception:
             doc.RegisteredApplications.Add(APP_XDATA)
 
+        cor = _cor_aci(app)
         for q, (x, y) in zip(quadros, posicoes(quadros, canto, escala)):
             t = ms.AddTable(ponto(x, y), len(q.linhas), len(q.larguras), q.alturas[0], q.larguras[0])
             t.RegenerateTableSuppressed = True
             t.Layer = layer
             t.VertCellMargin = q.altura_texto * 0.25
-            t.HorzCellMargin = q.altura_texto * 0.25
+            t.HorzCellMargin = q.altura_texto * 0.66  # numero a 0,066 da borda a 1:50, como a tabela aprovada
             for c, w in enumerate(q.larguras):
                 t.SetColumnWidth(c, w)
             for r, h in enumerate(q.alturas):
@@ -249,9 +266,15 @@ def plotar(app, quadros, canto: tuple[float, float], escala: float, layer: str =
                         continue  # celula vazia ou coberta por mescla
                     t.SetCellTextStyle(r, c, estilo)
                     t.SetCellTextHeight(r, c, q.altura_titulo if r == 0 else q.altura_texto)
-                    t.SetCellAlignment(r, c, _MEIO_CENTRO)
-                    # vermelho por codigo MTEXT: nao depende da versao do AcCmColor (R-FER-PLT-006)
-                    t.SetText(r, c, "{\\C1;" + cel.texto + "}" if cel.vermelho else cel.texto)
+                    t.SetCellAlignment(r, c, _MEIO_CENTRO if cel.alinhar == "centro" else _MEIO_DIREITA)
+                    # cor do texto por codigo MTEXT: vermelho do "?" (R-FER-PLT-006) e cor 4 dos titulos (R-FER-PLT-009)
+                    aci = 1 if cel.vermelho else cel.cor
+                    t.SetText(r, c, "{\\C%d;%s}" % (aci, cel.texto) if aci else cel.texto)
+            for r in range(len(q.linhas)):
+                for c in range(len(q.larguras)):
+                    for indice, mascara in _bordas(q, r, c).items():
+                        cor.ColorIndex = indice
+                        t.SetCellGridColor(r, c, mascara, cor)
             t.SetXData(_variant(pythoncom.VT_I2, [1001, 1000]), _variant(pythoncom.VT_VARIANT, [APP_XDATA, q.nome]))
             t.RegenerateTableSuppressed = False
     finally:

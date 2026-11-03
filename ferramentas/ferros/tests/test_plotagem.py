@@ -64,3 +64,42 @@ def test_quadros_empilhados_com_2mm_vezes_escala():
     assert pts[0] == (10.0, 20.0)
     assert pts[1][1] == pytest.approx(20.0 - q[0].altura - 0.1)
     assert pts[2][1] == pytest.approx(pts[1][1] - q[1].altura - 0.1)
+
+
+from cotador.grade import TextoLido as _TL  # noqa: E402
+
+
+def test_acabamento_da_lista_como_a_aprovada():
+    """R-FER-PLT-009"""
+    lista = planejar(grade("1N1 Ø10 c=100", "1N2 Ø10 c=100"), PESO_POR_M, escala=50)[0]
+    n = len(lista.linhas)
+    assert len(lista.horizontais) == n + 1 and all(len(h) == 5 for h in lista.horizontais)
+    for i in (0, 1, 3, n):
+        assert lista.horizontais[i] == [4] * 5, i
+    assert lista.horizontais[2][3:] == [2, 2]
+    assert lista.horizontais[4] == [7] * 5
+    assert all(v == [4, 4, 2, 2, 7, 4] for v in lista.verticais)
+    assert lista.linhas[0][0].cor == 4
+    assert [c.alinhar for c in lista.linhas[3]] == ["centro", "direita", "direita", "direita", "direita"]
+    assert lista.linhas[1][1].texto == "%%C\P(mm)"
+
+
+def test_linha_cor_2_onde_o_tipo_muda():
+    """R-FER-LIS-008"""
+    g = montar_grade([_TL("A", "1N1 Ø10 c=100", "VERT", 0, 0), _TL("B", "1N2 Ø10 c=100", "VERT", 0, 0), _TL("C", "1N3 Ø10 c=100", "CANAL", 0, 0)])
+    lista = planejar(g, PESO_POR_M, escala=50)[0]
+    assert lista.horizontais[4] == [7] * 5 and lista.horizontais[5] == [2] * 5
+    g.tipos[3] = "VERT"
+    assert planejar(g, PESO_POR_M, escala=50)[0].horizontais[5] == [7] * 5
+
+
+def test_acabamento_do_resumo():
+    """R-FER-PLT-009"""
+    r = planejar(grade("1N1 Ø10 c=100"), PESO_POR_M, escala=50)[1]
+    n = len(r.linhas)
+    total = r.linhas[-1]
+    assert (total[0].texto, total[0].alinhar, total[0].cor) == ("TOTAL:", "direita", 4)
+    assert r.linhas[0][0].cor == 4 and r.linhas[2][1].alinhar == "direita"
+    for i in (0, 1, 2, n - 1, n):
+        assert r.horizontais[i] == [4] * 4, i
+    assert all(v == [4, 4, 2, 7, 4] for v in r.verticais)

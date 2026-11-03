@@ -120,3 +120,17 @@ def test_ordem_manual_volta_da_memoria_e_nova_tag_vai_pro_fim(tmp_path):
     gravar_memoria(dwg, g)
     nova = montar_grade([*textos, lido("A4", "1N4 Ø10 c=100")], ler_memoria(dwg))
     assert [l.handle for l in nova.linhas] == ["A3", "A1", "A2", "A4"]
+
+
+def test_tipo_por_posicao_padrao_layer_e_memoria(tmp_path):
+    """R-FER-LIS-008"""
+    from cotador.grade import tipo_de
+
+    g = montar_grade([lido("A1", "2N1 Ø10 c=100", layer="FERRO1 - VERTICAL"), lido("A2", "2N1 Ø10 c=100", layer="OUTRO"),
+                      lido("A3", "2N2 Ø10 c=100", layer="FERRO2 - CANALETA")])
+    assert (tipo_de(g, 1), tipo_de(g, 2)) == ("FERRO1 - VERTICAL", "FERRO2 - CANALETA")
+    g.tipos[2] = "CANALETA"
+    dwg = tmp_path / "p.dwg"
+    gravar_memoria(dwg, g)
+    nova = montar_grade([lido("A1", "2N1 Ø10 c=100", layer="FERRO1 - VERTICAL"), lido("A3", "2N2 Ø10 c=100", layer="FERRO2 - CANALETA")], ler_memoria(dwg))
+    assert nova.tipos == {2: "CANALETA"} and tipo_de(nova, 2) == "CANALETA" and tipo_de(nova, 1) == "FERRO1 - VERTICAL"

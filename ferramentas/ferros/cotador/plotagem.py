@@ -8,7 +8,7 @@ largura 72,7 mm, linha 4,5 mm, texto 2 mm, titulo 3,2 mm (R-FER-PLT-005).
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
-from cotador.grade import Grade, _tag_efetiva
+from cotador.grade import Grade, _tag_efetiva, tipo_de
 from cotador.lista import ItemLista, montar_lista
 from cotador.resumo import CA60_PADRAO, resumos_por_aco
 from cotador.tabela import _bitola, _posicao
@@ -26,6 +26,12 @@ DISTANCIA_MM = 2.0
 class Celula:
     texto: str
     vermelho: bool = False
+    alinhar: str = "direita"  # numeros a direita; titulo, cabecalho e coluna N no centro (R-FER-PLT-009)
+    cor: int | None = None  # cor do texto (ACI); None = a da tabela
+
+
+def _centro(texto: str, cor: int | None = None) -> Celula:
+    return Celula(texto, alinhar="centro", cor=cor)
 
 
 FALTA = Celula("?", vermelho=True)
@@ -40,6 +46,8 @@ class Quadro:
     alturas: list[float]
     altura_texto: float
     altura_titulo: float
+    horizontais: list[list[int]] = field(default_factory=list)  # cor de cada linha horizontal, por coluna (linhas+1)
+    verticais: list[list[int]] = field(default_factory=list)  # cor de cada linha vertical, por linha da tabela (colunas+1)
 
     @property
     def altura(self) -> float:
@@ -56,7 +64,7 @@ class _Posicao:
     falta: bool = False
 
 
-def _lista_com_lacunas(grade: Grade) -> tuple[list[list[Celula]], list[ItemLista], set]:
+def _lista_com_lacunas(grade: Grade) -> tuple[list[list[Celula]], list[ItemLista], set, list[int]]:
     """Linhas da LISTA (com "?" onde falta) e os itens completos que vao para o resumo."""
     completas = [l for l in grade.linhas if not l.faltando]
     itens = {(i.letra, i.numero): i for i in montar_lista([_tag_efetiva(l) for l in completas], multiplicadores=grade.multiplicadores)}
@@ -70,35 +78,46 @@ def _lista_com_lacunas(grade: Grade) -> tuple[list[list[Celula]], list[ItemLista
         if l.comprimento_cm is not None:
             p.comprimentos.append(l.comprimento_cm)
 
-    linhas, para_resumo, acos_incompletos = [], [], set()
+    linhas, para_resumo, acos_incompletos, numeros = [], [], set(), []
     for chave in sorted(por_pos, key=lambda k: (k[1], k[0])):
         p = por_pos[chave]
+        numeros.append(p.numero)
         if not p.falta:
             i = itens[chave]
             para_resumo.append(i)
-            linhas.append([Celula(_posicao(i.letra, i.numero)), Celula(_bitola(i.bitola)), Celula(str(i.quantidade)),
+            linhas.append([_centro(_posicao(i.letra, i.numero)), Celula(_bitola(i.bitola)), Celula(str(i.quantidade)),
                            Celula(str(i.comprimento_unit_cm)), Celula(str(i.comprimento_total_cm))])
             continue
         qtd = p.quantidade * grade.multiplicadores.get(p.numero, 1)
         bitola = min(p.bitolas) if p.bitolas else None
         acos_incompletos.add(bitola)  # None = nao se sabe o aco: marca todos
-        linhas.append([Celula(_posicao(p.letra, p.numero)), Celula(_bitola(bitola)) if bitola else FALTA, Celula(str(qtd)), FALTA, FALTA])
-    return linhas, para_resumo, acos_incompletos
+        linhas.append([_centro(_posicao(p.letra, p.numero)), Celula(_bitola(bitola)) if bitola else FALTA, Celula(str(qtd)), FALTA, FALTA])
+    return linhas, para_resumo, acos_incompletos, numeros
 
 
 def planejar(grade: Grade, peso_por_m: Mapping[float, float], escala: float, ca60: Sequence[float] = CA60_PADRAO) -> list[Quadro]:
     u = escala / 1000.0  # mm no papel -> metros no desenho
-    corpo, itens, incompletos = _lista_com_lacunas(grade)
+    corpo, itens, incompletos, numeros = _lista_com_lacunas(grade)
     vazio = Celula("")
+    n = 3 + len(corpo)
+    # cores das linhas (pena) copiadas da tabela aprovada (R-FER-PLT-009)
+    horiz = [[7] * 5 for _ in range(n + 1)]
+    for i in (0, 1, 3, n):
+        horiz[i] = [4] * 5
+    horiz[2] = [7, 7, 7, 2, 2]  # sob COMPRIMENTO
+    for k in range(1, len(numeros)):  # R-FER-LIS-008: muda o tipo da posicao
+        if tipo_de(grade, numeros[k]) != tipo_de(grade, numeros[k - 1]):
+            horiz[3 + k] = [2] * 5
     lista = Quadro(
         nome="LISTA DE FERROS",
-        linhas=[[Celula("LISTA DE FERROS"), vazio, vazio, vazio, vazio],
-                [Celula("N"), Celula("%%C (mm)"), Celula("Q"), Celula("COMPRIMENTO"), vazio],
-                [vazio, vazio, vazio, Celula("UNIT.(cm)"), Celula("TOTAL(cm)")], *corpo],
+        linhas=[[_centro("LISTA DE FERROS", 4), vazio, vazio, vazio, vazio],
+                [_centro("N"), _centro("%%C\\P(mm)"), _centro("Q"), _centro("COMPRIMENTO"), vazio],
+                [vazio, vazio, vazio, _centro("UNIT.(cm)"), _centro("TOTAL(cm)")], *corpo],
         mesclar=[(0, 0, 0, 4), (1, 1, 3, 4), (1, 2, 0, 0), (1, 2, 1, 1), (1, 2, 2, 2)],
         larguras=[w * u for w in LARGURAS_LISTA_MM],
         alturas=[TITULO_MM * u, LINHA_MM * u, LINHA_MM * u] + [LINHA_MM * u] * len(corpo),
         altura_texto=TEXTO_MM * u, altura_titulo=TEXTO_TITULO_MM * u,
+        horizontais=horiz, verticais=[[4, 4, 2, 2, 7, 4] for _ in range(n)],
     )
     ca60 = {float(b) for b in ca60}
     quadros = [lista]
@@ -108,15 +127,20 @@ def planejar(grade: Grade, peso_por_m: Mapping[float, float], escala: float, ca6
         corpo_r = [[Celula(_bitola(r.bitola)), Celula(f"{r.comprimento_m:.2f}"), Celula(f"{r.peso_por_m:g}"), Celula(f"{r.peso_kg:.2f}")]
                    for r in bloco["linhas"]]
         n = len(corpo_r)
+        linhas_r = n + 3
+        horiz_r = [[7] * 4 for _ in range(linhas_r + 1)]
+        for i in (0, 1, 2, linhas_r - 1, linhas_r):
+            horiz_r[i] = [4] * 4
         quadros.append(Quadro(
             nome=f"RESUMO {bloco['aco']}",
-            linhas=[[Celula(f"RESUMO {bloco['aco']}"), vazio, vazio, vazio],
-                    [Celula("%%C (mm)"), Celula("COMPR.(m)"), Celula("PESO/m"), Celula("PESO(kg)")],
-                    *corpo_r, [Celula("TOTAL"), vazio, vazio, total]],
+            linhas=[[_centro(f"RESUMO {bloco['aco']}", 4), vazio, vazio, vazio],
+                    [_centro("%%C (mm)"), _centro("COMPR.(m)"), _centro("PESO/m"), _centro("PESO(kg)")],
+                    *corpo_r, [Celula("TOTAL:", cor=4), vazio, vazio, total]],
             mesclar=[(0, 0, 0, 3), (n + 2, n + 2, 0, 2)],
             larguras=[w * u for w in LARGURAS_RESUMO_MM],
             alturas=[TITULO_MM * u, LINHA_MM * u] + [LINHA_MM * u] * n + [TITULO_MM * u],
             altura_texto=TEXTO_MM * u, altura_titulo=TEXTO_TITULO_MM * u,
+            horizontais=horiz_r, verticais=[[4, 4, 2, 7, 4] for _ in range(linhas_r)],
         ))
     return quadros
 
