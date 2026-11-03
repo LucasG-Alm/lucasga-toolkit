@@ -12,10 +12,10 @@ _PADRAO = re.compile(
 
 
 _DIAMETRO = re.compile(r"%%[cC]|∅")
-_MARCADOR = re.compile(r"Ø|c/|c=", re.IGNORECASE)
+_MARCADOR = re.compile(r"Ø|c/|cm?=", re.IGNORECASE)
 _POSICAO = re.compile(r"^(?:(?P<mult>\d+)x)?(?P<qtd>\d+)?\s*(?P<letra>[A-Za-z])(?P<numero>\d+)(?P<resto>.*)$")
 _CAMPOS = re.compile(
-    r"^(?:\s+Ø(?P<bitola>\d+(?:[.,]\d+)?))?(?:\s+[cC]/(?P<espacamento>\d+(?:x\d+)?))?(?:\s+[cC]=(?P<comprimento>\d+))?$"
+    r"^(?:\s+Ø(?P<bitola>\d+(?:[.,]\d+)?))?(?:\s+[cC]/(?P<espacamento>\d+(?:x\d+)?))?(?:\s+[cC][mM]?=(?P<comprimento>\d+))?$"
 )
 
 

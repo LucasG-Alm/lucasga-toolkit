@@ -60,3 +60,12 @@ def test_c_maiusculo_e_espacamento_em_malha_valem():
 def test_nota_com_diametro_continua_nao_entendida():
     """R-FER-TAG-003"""
     assert isinstance(classificar("SOLDAR EM ESPERAS Ø10mm L≥8cm"), NaoEntendi)
+
+
+def test_cm_igual_vale_como_c_igual():
+    """R-FER-TAG-001: arquivos antigos escrevem cm= (visto em prancha real, 03/11/2026)."""
+    for texto in ("3N4 ∅10 cm=47", "3N4 Ø10 CM=47", "3N4 %%C10 c/15 cm=47"):
+        tag = classificar(texto)
+        assert isinstance(tag, TagLida), texto
+        assert (tag.quantidade, tag.numero, tag.bitola, tag.comprimento_cm) == (3, 4, 10.0, 47), texto
+    assert classificar("3 N4 cm=47").faltando == ("bitola",)
