@@ -13,6 +13,7 @@ const COLS_GRADE: Coluna[] = [
   { key: 'comprimento_cm', titulo: 'c (cm)', tipo: 'numero', filtro: 'numero', className: 'num' },
   { key: 'quantidade', titulo: 'Qtd', tipo: 'numero', filtro: 'numero', className: 'num' },
   { key: 'mult', titulo: '×', tipo: 'numero', filtro: 'lista', className: 'num' },
+  { key: 'tipo', titulo: 'Tipo', tipo: 'texto', filtro: 'lista' },
   { key: 'elemento', titulo: 'Elemento', tipo: 'texto', filtro: 'lista' },
 ];
 const COLS_LISTA: Coluna[] = [
@@ -151,6 +152,13 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
     });
     void atualizar({ ...grade, linhas });
   }
+  // R-FER-LIS-008: o Tipo é da posição; editar numa linha vale para todas as tags dela.
+  function mudarTipo(posicao: number, texto: string) {
+    if (!grade) return;
+    const tipo = texto.trim();
+    void atualizar({ ...grade, tipos: { ...(grade.tipos ?? {}), [String(posicao)]: tipo },
+      linhas: grade.linhas.map(l => l.numero === posicao ? { ...l, tipo } : l) });
+  }
   function mudarMultiplicador(posicao: number, texto: string) {
     if (!grade) return;
     const v = numero(texto);
@@ -216,6 +224,7 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
             if (c.key === 'bitola') return <td key={c.key} className="num"><Campo campo="bitola" linha={i} label={`Ø de ${l.handle}`} valor={l.bitola} falta={l.bitola === null} onSalvar={t => mudarLinha(l.handle, { bitola: numero(t) })} /></td>;
             if (c.key === 'comprimento_cm') return <td key={c.key} className="num"><Campo campo="comprimento" linha={i} label={`c de ${l.handle}`} valor={l.comprimento_cm} falta={l.comprimento_cm === null} onSalvar={t => { const v = numero(t); mudarLinha(l.handle, { comprimento_cm: v === null ? null : Math.round(v) }); }} /></td>;
             if (c.key === 'quantidade') return <td key={c.key} className="num"><Campo campo="quantidade" linha={i} label={`Qtd de ${l.handle}`} valor={l.quantidade} onSalvar={t => { const v = numero(t); if (v !== null) mudarLinha(l.handle, { quantidade: Math.round(v) }); }} /></td>;
+            if (c.key === 'tipo') return <td key={c.key}><Campo key={`${l.handle}-${l.tipo}`} campo="tipo" linha={i} label={`Tipo de ${l.handle}`} valor={l.tipo ?? ''} onSalvar={t => mudarTipo(l.numero, t)} largura="w-40" /></td>;
             if (c.key === 'mult') return <td key={c.key} className="num"><Campo key={`${l.handle}-${l.mult}`} campo="mult" linha={i} label={`× de ${l.handle}`} valor={l.mult} onSalvar={t => mudarMultiplicador(l.numero, t)} largura="w-12" /></td>;
             return <td key={c.key}><Campo key={`${l.handle}-${l.elemento}`} campo="elemento" linha={i} label={`Elemento de ${l.handle}`} valor={l.elemento} onSalvar={t => mudarLinha(l.handle, { elemento: t.trim() || l.layer })} largura="w-40" /></td>;
           })}

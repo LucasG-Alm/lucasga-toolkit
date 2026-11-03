@@ -60,9 +60,9 @@ export interface MapInfo {available: boolean; template?: string; attribution: st
 export interface FerrosLinha {
   handle: string; layer: string; texto: string; posicao: string; numero: number;
   bitola: number | null; comprimento_cm: number | null; quantidade: number; quantidade_desenho: number;
-  elemento: string; x: number; y: number; faltando: string[]; difere: boolean;
+  elemento: string; x: number; y: number; faltando: string[]; difere: boolean; tipo?: string;
 }
-export interface FerrosGrade { linhas: FerrosLinha[]; nao_entendi: {handle: string; texto: string; x: number; y: number}[]; multiplicadores: Record<string, number> }
+export interface FerrosGrade { linhas: FerrosLinha[]; nao_entendi: {handle: string; texto: string; x: number; y: number}[]; multiplicadores: Record<string, number>; tipos?: Record<string, string> }
 export interface FerrosDesenho { nome: string; caminho: string | null }
 export interface FerrosPedido {
   acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar' | 'exportar' | 'plotar';

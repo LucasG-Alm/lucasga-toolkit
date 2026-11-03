@@ -255,3 +255,17 @@ test('plotar tabela: escala 1:50, pergunta se já existe e substitui (R-FER-PLT-
   expect(await screen.findByText(/Tabela plotada \(3 quadros\)/)).toBeTruthy();
   existe = false;
 });
+
+test('Tipo por posição: editar numa linha vale para a posição toda (R-FER-LIS-008)', async () => {
+  const comTipo = { ...lido, grade: { ...lido.grade, linhas: [
+    linha({ tipo: 'TXT02' }), linha({ handle: 'A4', tipo: 'TXT02' }),
+    linha({ handle: 'A2', texto: '3 N1 c/10', posicao: 'N1', numero: 1, bitola: null, comprimento_cm: null, quantidade: 3, quantidade_desenho: 3, faltando: ['bitola', 'comprimento'], tipo: 'TXT02' })] } };
+  const { api, ferros } = setup(p => p.acao === 'ler' ? comTipo : { lista: [], resumo: [], total: 0, avisos: [] });
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Nova seleção (limpa)' }));
+  const tipo = await screen.findByLabelText('Tipo de A1');
+  await userEvent.clear(tipo); await userEvent.type(tipo, 'CANALETA'); await userEvent.tab();
+  await waitFor(() => expect(ferros.mock.calls.map(c => c[0]).filter(p => p.acao === 'calcular').pop()!.grade!.tipos).toEqual({ '11': 'CANALETA' }));
+  expect((screen.getByLabelText('Tipo de A4') as HTMLInputElement).value).toBe('CANALETA');
+  expect((screen.getByLabelText('Tipo de A2') as HTMLInputElement).value).toBe('TXT02');
+});
