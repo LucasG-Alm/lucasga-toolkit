@@ -123,12 +123,10 @@ def _para_frente(app) -> None:
         pass  # Windows pode negar o foco; o pedido de selecao aparece mesmo assim
 
 
-def ler(app, progresso: Callable | None = None) -> tuple[InfoDesenho, list[TextoLido]] | None:
+def _selecao(app, filtro: str, progresso: Callable | None) -> list | None:
     """R-FER-CAD-004: a selecao ativa, ou pede uma. None = cancelado (Esc)."""
     import pythoncom
-    import win32com.client
 
-    info = desenho_ativo(app)
     doc = app.ActiveDocument
     selecao = com_espera(lambda: doc.PickfirstSelectionSet)
     if selecao.Count == 0:
@@ -142,15 +140,20 @@ def ler(app, progresso: Callable | None = None) -> tuple[InfoDesenho, list[Texto
             progresso("selecao", 0, 0)
         _para_frente(app)
         doc.Utility.Prompt("\nSelecione os objetos e tecle Enter (Esc cancela).\n")
-        tipos = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_I2, [0])
-        valores = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_VARIANT, ["TEXT,MTEXT,INSERT"])
         try:
-            selecao.SelectOnScreen(tipos, valores)
+            selecao.SelectOnScreen(_variant(pythoncom.VT_I2, [0]), _variant(pythoncom.VT_VARIANT, [filtro]))
         except Exception:
             return None
         if selecao.Count == 0:
             return None
-    return info, textos_de(doc, list(selecao), progresso)
+    return list(selecao)
+
+
+def ler(app, progresso: Callable | None = None) -> tuple[InfoDesenho, list[TextoLido]] | None:
+    """R-FER-CAD-004: a selecao ativa, ou pede uma. None = cancelado (Esc)."""
+    info = desenho_ativo(app)
+    ents = _selecao(app, "TEXT,MTEXT,INSERT", progresso)
+    return None if ents is None else (info, textos_de(app.ActiveDocument, ents, progresso))
 
 
 def zoom(app, x: float, y: float, altura: float = 2.0) -> None:
@@ -280,3 +283,114 @@ def plotar(app, quadros, canto: tuple[float, float], escala: float, layer: str =
     finally:
         com_espera(lambda: doc.EndUndoMark())
     return {"avisos": avisos}
+
+
+# --- Etapa 3: cotar os ferros (R-FER-COT-*) -----------------------------------
+
+_ALINHAR_MEIO = 4  # acAlignmentMiddle = TEXT "MIDDLE" do ezdxf
+
+
+def _poly(ent):
+    from cotador.cotar import PolyLida
+
+    c = list(ent.Coordinates)
+    pontos = [(c[i], c[i + 1]) for i in range(0, len(c), 2)]
+    if ent.Closed and pontos:
+        pontos.append(pontos[0])
+    return PolyLida(ent.Handle, ent.Layer, tuple(pontos))
+
+
+def polys_de(entidades: Iterable, progresso: Callable | None = None) -> tuple[list, list[dict]]:
+    """R-FER-COT-001 / 005: LWPOLYLINE viram ferros; arrays (*U) so sao contados."""
+    polys, arrays = [], []
+    entidades = list(entidades)
+    for i, ent in enumerate(entidades, start=1):
+        if progresso:
+            progresso("lendo", i, len(entidades))
+        nome = ent.ObjectName
+        if nome == "AcDbPolyline":
+            p = _poly(ent)
+            if len(p.vertices) >= 2:
+                polys.append(p)
+        elif nome == "AcDbBlockReference" and ent.Name.upper().startswith("*U"):
+            x, y, _ = ent.InsertionPoint
+            arrays.append({"handle": ent.Handle, "x": x, "y": y})
+    return polys, arrays
+
+
+def textos_com_n(doc) -> list:
+    """Todo TEXT/MTEXT do model com N e numero (R-FER-COT-002 / 004), no ponto que o usuario ve."""
+    import pythoncom
+
+    from cotador.cotar import TextoPerto
+
+    nome = "LUCASGA_FERROS_N"
+    try:
+        doc.SelectionSets.Item(nome).Delete()
+    except Exception:
+        pass
+    selecao = doc.SelectionSets.Add(nome)
+    selecao.Select(5, None, None, _variant(pythoncom.VT_I2, [0, 1]), _variant(pythoncom.VT_VARIANT, ["TEXT,MTEXT", "*N#*"]))
+    saida = []
+    for ent in selecao:
+        texto = _texto(ent)
+        if texto is None:
+            continue
+        # TEXT alinhado guarda o ponto do alinhamento; o InsertionPoint fica no canto esquerdo
+        p = ent.TextAlignmentPoint if ent.ObjectName == "AcDbText" and ent.Alignment != 0 else ent.InsertionPoint
+        saida.append(TextoPerto(texto, p[0], p[1]))
+    selecao.Delete()
+    return saida
+
+
+def ler_cotar(app, progresso: Callable | None = None):
+    """(info, polys, arrays, textos com N) ou None se cancelado."""
+    info = desenho_ativo(app)
+    ents = _selecao(app, "LWPOLYLINE,INSERT", progresso)
+    if ents is None:
+        return None
+    polys, arrays = polys_de(ents, progresso)
+    return info, polys, arrays, textos_com_n(app.ActiveDocument)
+
+
+def polys_por_handle(doc, handles: Iterable[str]) -> dict:
+    """Geometria atual de cada ferro; o que foi apagado depois da leitura fica de fora."""
+    saida = {}
+    for h in handles:
+        try:
+            saida[h] = _poly(doc.HandleToObject(h))
+        except Exception:
+            pass
+    return saida
+
+
+def cotar(app, anotacoes, layer: str = "TXT02", estilo: str = "R80R") -> dict:
+    """R-FER-COT-006: tags e cotas entre marcas de UNDO. Devolve as tags como TextoLido (R-FER-COT-009)."""
+    from cotador.lista import TagLida, classificar
+
+    doc = app.ActiveDocument
+    ms = doc.ModelSpace
+    avisos, textos = [], []
+    com_espera(lambda: doc.StartUndoMark())
+    try:
+        try:
+            doc.Layers.Item(layer)
+        except Exception:
+            doc.Layers.Add(layer)
+        try:
+            doc.TextStyles.Item(estilo)
+        except Exception:
+            avisos.append(f"Estilo de texto {estilo} não existe neste desenho: usei {doc.ActiveTextStyle.Name}.")
+            estilo = doc.ActiveTextStyle.Name
+        for a in anotacoes:
+            t = ms.AddText(a.texto, ponto(*a.posicao), a.altura)
+            t.Alignment = _ALINHAR_MEIO
+            t.TextAlignmentPoint = ponto(*a.posicao)
+            t.Rotation = a.rotacao
+            t.Layer = layer
+            t.StyleName = estilo
+            if isinstance(classificar(a.texto), TagLida):
+                textos.append(TextoLido(t.Handle, a.texto, layer, a.posicao[0], a.posicao[1]))
+    finally:
+        com_espera(lambda: doc.EndUndoMark())
+    return {"avisos": avisos, "textos": textos}

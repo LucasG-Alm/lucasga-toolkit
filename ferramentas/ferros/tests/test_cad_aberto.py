@@ -137,3 +137,38 @@ def test_plota_tabelas_com_marca_e_substitui_no_mesmo_lugar(desenho_temporario):
     depois = cad_aberto.tabelas_existentes(doc)
     assert len(depois) == 3
     assert tuple(round(v, 6) for v in max(depois, key=lambda t: t.InsertionPoint[1]).InsertionPoint[:2]) == (100.0, 50.0)
+
+
+@autocad
+def test_cotar_le_polylines_numera_e_escreve_tags_que_o_contar_le(desenho_temporario):
+    """R-FER-COT-001 / 002 / 004 / 005 / 006 / 007"""
+    from cotador.cotar import anotacoes_para_cotar, montar_cotar
+    from cotador.grade import montar_grade
+
+    app, doc = desenho_temporario
+    ms = doc.ModelSpace
+
+    def pl(*xy):
+        return ms.AddLightWeightPolyline(cad_aberto._variant(__import__("pythoncom").VT_R8, [float(v) for v in xy]))
+
+    a = pl(0, 0, 2.8, 0)
+    b = pl(0, 2, 0, 2.11, 0.91, 2.11)
+    c = pl(0, 5, 2.8, 5)
+    ms.AddText("N7", cad_aberto.ponto(1.4, 0.2), 0.1)
+    ms.AddText("3N4 %%C10 c=280", cad_aberto.ponto(0.5, 5.1), 0.1)
+    polys, arrays = cad_aberto.polys_de(list(ms))
+    assert {p.handle for p in polys} == {a.Handle, b.Handle, c.Handle} and arrays == []
+    leitura = montar_cotar(polys, cad_aberto.textos_com_n(doc), 0.1)
+    assert [j["handle"] for j in leitura.ja_cotados] == [c.Handle]
+    assert {g.numero: g.handles for g in leitura.grupos} == {7: [a.Handle], 8: [b.Handle]}
+
+    for g in leitura.grupos:
+        g.bitola, g.quantidade = 10.0, 2
+    antes = ms.Count
+    por_handle = cad_aberto.polys_por_handle(doc, [h for g in leitura.grupos for h in g.handles])
+    r = cad_aberto.cotar(app, anotacoes_para_cotar(por_handle, leitura.grupos, 50), "TXT02", "NAO_EXISTE")
+    assert any("NAO_EXISTE" in x for x in r["avisos"])
+    assert ms.Count == antes + 4  # 2 tags + 2 cotas do ferro dobrado
+    grade = montar_grade(r["textos"])
+    assert sorted(l.tag.texto for l in grade.linhas) == ["2N7 %%C10 c=280", "2N8 %%C10 c=102"]
+    assert all(l.layer == "TXT02" for l in grade.linhas)

@@ -65,11 +65,17 @@ export interface FerrosLinha {
 export interface FerrosGrade { linhas: FerrosLinha[]; nao_entendi: {handle: string; texto: string; x: number; y: number}[]; multiplicadores: Record<string, number>; tipos?: Record<string, string> }
 export interface FerrosDesenho { nome: string; caminho: string | null }
 export interface FerrosPedido {
-  acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar' | 'exportar' | 'plotar';
+  acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar' | 'exportar' | 'plotar' | 'cotar_ler' | 'cotar';
+  grupos?: FerrosGrupoCotar[];
   escala?: number; layer?: string; estilo?: string; substituir?: boolean;
   grade?: FerrosGrade; caminho?: string | null; x?: number; y?: number; peso?: Record<string, number>;
   modo?: 'nova' | 'adicionar' | 'remover'; elemento?: string; ca60?: number[];
 }
+export interface FerrosGrupoCotar {
+  numero: number; handles: string[]; pecas: number[]; comprimento_cm: number; bitola: number | null; quantidade: number | null;
+  multiplicador: number | null; espacamento: string | null; x: number; y: number; faltando: string[];
+}
+export interface FerrosPonto { handle: string; x: number; y: number }
 export interface FerrosItemLista { posicao: string; bitola: number; comprimento_unit_cm: number; quantidade: number; comprimento_total_cm: number; avisos: string[] }
 export interface FerrosItemResumo { bitola: number; comprimento_m: number; peso_por_m: number; peso_kg: number }
 export interface FerrosResumoAco { aco: string; linhas: FerrosItemResumo[]; total: number }
@@ -77,6 +83,7 @@ export interface FerrosResposta {
   desenho?: FerrosDesenho; grade?: FerrosGrade; avisos?: string[]; cancelado?: boolean;
   lista?: FerrosItemLista[]; resumo?: FerrosItemResumo[]; total?: number; bloqueado?: string; arquivo?: string;
   resumos?: FerrosResumoAco[]; ca60?: number[]; existe?: number; plotado?: number;
+  grupos?: FerrosGrupoCotar[]; ja_cotados?: FerrosPonto[]; arrays?: FerrosPonto[]; cotados?: number;
 }
 export interface FerrosProgresso { fase: 'selecao' | 'lendo' | 'calculando'; i: number; n: number }
 export interface ToolkitAPI {

@@ -49,11 +49,11 @@ function TabelaResumo({ bloco, onPeso }: { bloco: FerrosResumoAco; onPeso(bitola
     <tfoot><tr className="ferros-total-linha"><td colSpan={3}>Total</td><td className="num"><span>{kg(bloco.total)}</span></td></tr></tfoot>
   </table>;
 }
-const numero = (texto: string) => { const v = Number(texto.trim().replace(',', '.')); return texto.trim() === '' || !Number.isFinite(v) ? null : v; };
+export const numero = (texto: string) => { const v = Number(texto.trim().replace(',', '.')); return texto.trim() === '' || !Number.isFinite(v) ? null : v; };
 const kg = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // Enter leva ao mesmo campo da próxima linha visível; o onBlur é quem salva (R-FER-UI-004).
-function Campo({ label, valor, falta, onSalvar, largura = 'w-16', campo, linha }: { label: string; valor: string | number | null; falta?: boolean; onSalvar(texto: string): void; largura?: string; campo?: string; linha?: number }) {
+export function Campo({ label, valor, falta, onSalvar, largura = 'w-16', campo, linha }: { label: string; valor: string | number | null; falta?: boolean; onSalvar(texto: string): void; largura?: string; campo?: string; linha?: number }) {
   const [texto, setTexto] = useState(valor === null ? '' : String(valor));
   return <input aria-label={label} className={`ferros-campo ${largura}`} data-falta={falta ? 'true' : 'false'} value={texto}
     data-campo={campo} data-linha={linha}
@@ -67,7 +67,7 @@ function Campo({ label, valor, falta, onSalvar, largura = 'w-16', campo, linha }
 }
 
 // R-FER-UI-006: no lugar da tabela enquanto o AutoCAD é lido.
-function Progresso({ dado }: { dado: FerrosProgresso | null }) {
+export function Progresso({ dado }: { dado: FerrosProgresso | null }) {
   const pct = dado?.fase === 'lendo' && dado.n ? Math.round(dado.i / dado.n * 100) : undefined;
   const texto = !dado ? 'Conectando ao AutoCAD…' : dado.fase === 'selecao' ? 'Aguardando seleção no AutoCAD… (selecione e tecle Enter)'
     : dado.fase === 'lendo' ? `Lendo ${dado.i}/${dado.n} objetos (${pct}%)` : 'Calculando…';
@@ -77,7 +77,9 @@ function Progresso({ dado }: { dado: FerrosProgresso | null }) {
   </div>;
 }
 
-export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: unknown): void }) {
+export interface Chegada { grade: FerrosGrade; desenho: FerrosDesenho | null }
+
+export function FerrosPanel({ api, onError, chegada }: { api: ToolkitAPI; onError(value: unknown): void; chegada?: Chegada }) {
   const [desenho, setDesenho] = useState<FerrosDesenho | null>(null);
   const [grade, setGrade] = useState<FerrosGrade | null>(null);
   const [calculo, setCalculo] = useState<FerrosResposta>({});
@@ -110,6 +112,15 @@ export function FerrosPanel({ api, onError }: { api: ToolkitAPI; onError(value: 
       setAvisos(gravado.avisos ?? []);
     } catch (erro) { onError(erro); }
   }
+  // R-FER-COT-009: tags que o Cotar acabou de escrever entram sem duplicar (outro desenho: substitui).
+  useEffect(() => {
+    if (!chegada) return;
+    const base = grade && desenho?.caminho === chegada.desenho?.caminho ? grade : null;
+    const tem = new Set(base?.linhas.map(l => l.handle));
+    if (!base) { setDesenho(chegada.desenho); setMarcadas(new Set()); setPlanilha(null); }
+    void atualizar(base ? { ...base, linhas: [...base.linhas, ...chegada.grade.linhas.filter(l => !tem.has(l.handle))] } : chegada.grade, chegada.desenho);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chegada]);
   // R-FER-SEL-001..004: nova substitui; adicionar/remover juntam no Python com a grade atual.
   async function ler(modo: 'nova' | 'adicionar' | 'remover') {
     setLendo(true); setProgresso(null);

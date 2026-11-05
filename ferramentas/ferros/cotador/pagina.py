@@ -108,8 +108,39 @@ def _calcular(grade: Grade, peso: dict | None, ca60: tuple[float, ...] = CA60_PA
     }
 
 
+def grupos_para_json(grupos) -> list[dict]:
+    return [{"numero": g.numero, "handles": g.handles, "pecas": g.pecas, "comprimento_cm": g.comprimento_cm,
+             "bitola": g.bitola, "quantidade": g.quantidade, "multiplicador": g.multiplicador,
+             "espacamento": g.espacamento, "x": g.x, "y": g.y, "faltando": list(g.faltando)} for g in grupos]
+
+
+def grupos_de_json(dados: list[dict]):
+    from cotador.cotar import GrupoCotar
+
+    def num(v, tipo):
+        return None if v in (None, "") else tipo(v)
+
+    return [GrupoCotar(numero=int(d["numero"]), handles=list(d["handles"]), pecas=[int(p) for p in d["pecas"]],
+                       comprimento_cm=int(d["comprimento_cm"]), bitola=num(d.get("bitola"), float),
+                       quantidade=num(d.get("quantidade"), int), multiplicador=num(d.get("multiplicador"), int),
+                       espacamento=d.get("espacamento") or None, x=d.get("x", 0.0), y=d.get("y", 0.0)) for d in dados]
+
+
+def _escala(pedido: dict) -> float:
+    return float(pedido.get("escala") or 50)
+
+
+def _desenho_json(info) -> dict:
+    return {"nome": info.nome, "caminho": str(info.caminho) if info.caminho else None}
+
+
 def executar(pedido: dict) -> dict:
     acao = pedido.get("acao")
+    if acao == "cotar":
+        grupos = grupos_de_json(pedido["grupos"])
+        vermelho = [f"N{g.numero}" for g in grupos if g.faltando]
+        if vermelho:  # antes de conectar: nao precisa do AutoCAD para recusar (R-FER-COT-003)
+            return {"bloqueado": f"Preencha Ø e Qtd: {', '.join(vermelho)}"}
     if acao == "calcular":
         return _calcular(grade_de_json(pedido["grade"]), pedido.get("peso"), _ca60(pedido))
     if acao == "exportar":
@@ -169,6 +200,30 @@ def executar(pedido: dict) -> dict:
         quadros = planejar(grade_de_json(pedido["grade"]), _tabela_peso(pedido.get("peso")), escala, _ca60(pedido))
         r = cad_aberto.plotar(app, quadros, canto, escala, pedido.get("layer") or "TABELA", pedido.get("estilo") or "R80R", apagar)
         return {"plotado": len(quadros), "avisos": r["avisos"]}
+    if acao == "cotar_ler":
+        from cotador.config import ALTURA_TEXTO_NO_PAPEL
+        from cotador.cotar import montar_cotar
+
+        lido = cad_aberto.ler_cotar(app, _avanco)
+        if lido is None:
+            return {"cancelado": True}
+        info, polys, arrays, textos = lido
+        progresso("calculando")
+        leitura = montar_cotar(polys, textos, ALTURA_TEXTO_NO_PAPEL * _escala(pedido))
+        return {"desenho": _desenho_json(info), "grupos": grupos_para_json(leitura.grupos),
+                "ja_cotados": leitura.ja_cotados, "arrays": arrays}
+    if acao == "cotar":
+        from cotador.cotar import anotacoes_para_cotar
+
+        info = cad_aberto.desenho_ativo(app)
+        if pedido.get("caminho") != (str(info.caminho) if info.caminho else None):
+            return {"bloqueado": "Desenho diferente do lido: leia os ferros de novo."}  # R-FER-COT-008
+        polys = cad_aberto.polys_por_handle(app.ActiveDocument, [h for g in grupos for h in g.handles])
+        r = cad_aberto.cotar(app, anotacoes_para_cotar(polys, grupos, _escala(pedido)),
+                             pedido.get("layer") or "TXT02", pedido.get("estilo") or "R80R")
+        avisos = r["avisos"] + ([f"{n} ferro(s) sumiram do desenho desde a leitura."]
+                                if (n := sum(len(g.handles) for g in grupos) - len(polys)) else [])
+        return {"cotados": len(polys), "avisos": avisos, "grade": grade_para_json(montar_grade(r["textos"]))}
     if acao == "zoom":
         cad_aberto.zoom(app, float(pedido["x"]), float(pedido["y"]))
         return {}

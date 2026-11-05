@@ -23,3 +23,8 @@
 @keyframes ferros-vai { from { transform: translateX(-100%); } to { transform: translateX(350%); } }
 .ferros-resumos { display: flex; flex-direction: column; gap: 12px; }
 .ferros-config { font-size: 13px; }
+
+/* R-FER-COT-010: abas Contar | Cotar */
+.ferros-abas { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border, #ddd); margin-bottom: 0.75rem; }
+.ferros-aba { padding: 0.4rem 1rem; border: 0; border-bottom: 2px solid transparent; background: none; font-weight: 600; cursor: pointer; opacity: 0.6; }
+.ferros-aba[aria-selected="true"] { border-bottom-color: currentColor; opacity: 1; }

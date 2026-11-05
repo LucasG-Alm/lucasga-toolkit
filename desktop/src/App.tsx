@@ -11,7 +11,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { ManualInput } from './components/ManualInput';
 import { ThemeSwitch } from './components/ThemeSwitch';
 import { LocationPanel } from './components/LocationPanel';
-import { FerrosPanel } from './components/FerrosPanel';
+import { FerrosPagina } from './components/FerrosPagina';
 import type { Check, InputFile, QueueState, Tool, Values, Inspection } from '../shared/contracts';
 const icons: Record<string, typeof Wrench> = { ortografia: FileCheck2, aprender: BookOpen, dividir: Layers3, limpar: Wrench, galeria: MapPinned, modelos3d: Box, ferros: Ruler, pts3d: TerminalSquare, malha: Grid2X2 };
 const initialQueue: QueueState = { status: 'idle', stopRequested: false, jobs: [] };
@@ -120,7 +120,7 @@ export default function App() {
       {error && <div className="error" role="alert">{error}</div>}
       <div hidden={settingsOpen || toolId !== 'localizacao'}><LocationPanel api={api} queue={queue} onError={onError} active={toolId === 'localizacao' && !settingsOpen} /></div>
       {settingsOpen ? <SettingsPanel api={api} onError={onError} /> : tool && <>
-        {tool.id === 'localizacao' ? null : tool.id === 'ferros' ? <FerrosPanel api={api} onError={onError} /> : tool.manual ? <Card className="panel"><CardHeader><CardTitle>Usar no AutoCAD</CardTitle></CardHeader><CardContent className="manual">{tool.instructions}</CardContent></Card>
+        {tool.id === 'localizacao' ? null : tool.id === 'ferros' ? <FerrosPagina api={api} onError={onError} /> : tool.manual ? <Card className="panel"><CardHeader><CardTitle>Usar no AutoCAD</CardTitle></CardHeader><CardContent className="manual">{tool.instructions}</CardContent></Card>
           : <div className="workspace">
             <div><FileInputs api={api} extensions={tool.extensions} files={files} selected={selected} recursive={recursive} disabled={busy || scanning || inspecting}
               onPaths={newPaths => scan([...new Set([...paths, ...newPaths])])} onRecursive={include => { setRecursive(include); void scan(paths, include).catch(onError); }}

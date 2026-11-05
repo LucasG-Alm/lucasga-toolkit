@@ -122,13 +122,19 @@ Sem tabela dinâmica: o resumo por posição é feito com fórmula. Não precisa
 | R-FER-PLT-008 | As tabelas levam XData `LUCASGA_FERROS`. Plotar de novo num desenho que já tem: a página pergunta; substituindo, apaga as antigas e a nova entra no canto da antiga mais alta (a LISTA), sem clicar ponto. Layer inexistente é criada; estilo de texto inexistente: usa o atual e avisa. |
 | R-FER-PLT-007 | Uma TABLE por quadro, nesta ordem e de cima para baixo: LISTA DE FERROS, RESUMO CA-50, RESUMO CA-60 (se houver); distância 2 mm × escala entre elas. |
 
-## Etapa 3 — Cotar ferros (pendente)
+## Etapa 3 — Cotar ferros
+
+Mesma escala da página (padrão 1:50): texto de 2 mm no papel = 0,002 × escala no desenho (em metros). Layer `TXT02` e estilo `R80R`, editáveis na página.
 
 | ID | Regra |
 |----|-------|
-| R-FER-COT-001 | Lê as polylines selecionadas, de qualquer layer. |
-| R-FER-COT-002 | Ferro com texto `N<i>` próximo mantém esse número; sem texto, recebe o próximo livre (maior N do desenho + 1); editável na grade. |
-| R-FER-COT-003 | Grade: uma linha por grupo de ferros iguais (N, peças, comprimento calculado, Ø, Qtd). Ø e Qtd vermelhos até preencher; só executa sem vermelho. |
-| R-FER-COT-004 | Ferro que já tem tag e cotas aparece como "já cotado" e é pulado. |
-| R-FER-COT-005 | Array blocks (`*U`) não são lidos; a página avisa quantos e oferece zoom. |
-| R-FER-COT-006 | Tags e cotas entram entre marcas de UNDO (um Ctrl+Z desfaz). |
+| R-FER-COT-001 | Lê as LWPOLYLINE selecionadas (seleção ativa ou pedida no AutoCAD), de qualquer layer. Polyline fechada ganha o vértice de volta ao início. |
+| R-FER-COT-002 | Número: texto `N<i>` sozinho (ou tag N completa) a até 10 alturas de texto do ferro dá o número; vale o mais próximo. Sem texto, recebe o próximo livre (maior N do desenho inteiro + 1), na ordem de leitura. Editável na grade. |
+| R-FER-COT-003 | Grade: uma linha por grupo de ferros iguais (mesmo número e mesma forma): N, peças (cm), c (cm calculado), Ø, Qtd, ×, c/. Ø e Qtd vermelhos até preencher; Cotar bloqueia com vermelho. |
+| R-FER-COT-004 | Ferro com tag completa a até 3 alturas de texto do trecho principal é "já cotado": vai para a lista à parte e é pulado. |
+| R-FER-COT-005 | Array blocks (`*U`) não são lidos; a página avisa quantos e oferece zoom em cada um. |
+| R-FER-COT-006 | Tags e cotas entram entre marcas de UNDO (um Ctrl+Z desfaz). Layer inexistente é criada; estilo inexistente usa o atual e avisa. |
+| R-FER-COT-007 | Formato da tag: `[M x][Q]N<i> %%C<Ø> [c/<esp>] c=<cm>` (ex.: `2x4N11 %%C12.5 c=391`); Q só se > 1, c/ só se preenchido. A aba Contar lê a tag de volta com os mesmos números. |
+| R-FER-COT-008 | Posição: a tag fica no trecho principal do lado oposto aos ganchos; ferro dobrado ganha a cota de cada trecho (regras do `anotacao.py`). Desenho diferente do lido bloqueia. |
+| R-FER-COT-009 | Depois de cotar, "Contar o que acabei de cotar" acrescenta as tags novas na aba Contar (sem duplicar). |
+| R-FER-COT-010 | A página tem as abas Contar \| Cotar; trocar de aba não perde o que está em cada uma. |

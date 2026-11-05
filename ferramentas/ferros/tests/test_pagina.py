@@ -184,3 +184,19 @@ def test_tipo_vai_e_volta_no_json():
     dados = json.loads(json.dumps(grade_para_json(g)))
     assert dados["linhas"][0]["tipo"] == "ALVENARIA"
     assert grade_de_json(dados).tipos == {1: "ALVENARIA"}
+
+
+def test_grupos_do_cotar_vao_e_voltam_em_json():
+    """R-FER-COT-003: a grade do Cotar fica na tela e volta igual."""
+    from cotador.cotar import GrupoCotar
+    from cotador.pagina import grupos_de_json, grupos_para_json
+
+    g = GrupoCotar(numero=8, handles=["A", "B"], pecas=[11, 91], comprimento_cm=102, bitola=8.0, quantidade=2, espacamento="15", x=1.0, y=2.0)
+    dados = json.loads(json.dumps(grupos_para_json([g])))
+    assert dados[0]["faltando"] == [] and grupos_de_json(dados) == [g]
+
+
+def test_cotar_com_vermelho_bloqueia_sem_tocar_no_autocad():
+    """R-FER-COT-003"""
+    r = executar({"acao": "cotar", "grupos": [{"numero": 8, "handles": ["A"], "pecas": [280], "comprimento_cm": 280, "bitola": None, "quantidade": 2}]})
+    assert "N8" in r["bloqueado"]
