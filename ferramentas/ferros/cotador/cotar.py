@@ -28,6 +28,7 @@ class Lote:
     inicial: str = ""
     bitola: float | None = None
     espacamento: str = ""
+    incluir_comprimento: bool = True
 
     def letra_e_numero(self) -> tuple[str, int | None]:
         m = _INICIAL.fullmatch(self.inicial)
@@ -132,7 +133,8 @@ def texto_da_tag(lote: Lote, letra: str, numero: int, comprimento_cm: int) -> st
     """R-FER-COT-003"""
     bitola = f" %%C{lote.bitola:g}" if lote.bitola else ""
     esp = f" c/{lote.espacamento.strip()}" if lote.espacamento.strip() else ""
-    return f"{lote.quant.strip()}{letra}{numero}{bitola}{esp} c={comprimento_cm}"
+    comprimento = f" c={comprimento_cm}" if lote.incluir_comprimento else ""
+    return f"{lote.quant.strip()}{letra}{numero}{bitola}{esp}{comprimento}"
 
 
 def anotacoes_do_lote(polys: dict[str, PolyLida], grupos: list[GrupoCotar], lote: Lote, escala: float) -> list[Anotacao]:

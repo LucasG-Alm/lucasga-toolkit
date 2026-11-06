@@ -66,7 +66,7 @@ export interface FerrosGrade { linhas: FerrosLinha[]; nao_entendi: {handle: stri
 export interface FerrosDesenho { nome: string; caminho: string | null }
 export interface FerrosPedido {
   acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar' | 'exportar' | 'plotar' | 'cotar';
-  quant?: string; inicial?: string; bitola?: number | null; espacamento?: string;
+  quant?: string; inicial?: string; bitola?: number | null; espacamento?: string; incluirComprimento?: boolean;
   escala?: number; layer?: string; estilo?: string; substituir?: boolean;
   grade?: FerrosGrade; caminho?: string | null; x?: number; y?: number; peso?: Record<string, number>;
   modo?: 'nova' | 'adicionar' | 'remover'; elemento?: string; ca60?: number[];

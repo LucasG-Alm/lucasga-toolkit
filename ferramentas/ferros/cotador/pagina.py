@@ -113,7 +113,8 @@ def _lote(pedido: dict):
 
     b = pedido.get("bitola")
     return Lote(quant=str(pedido.get("quant") or ""), inicial=str(pedido.get("inicial") or ""),
-                bitola=None if b in (None, "") else float(b), espacamento=str(pedido.get("espacamento") or ""))
+                bitola=None if b in (None, "") else float(b), espacamento=str(pedido.get("espacamento") or ""),
+                incluir_comprimento=pedido.get("incluirComprimento", True) is not False)
 
 
 def _escala(pedido: dict) -> float:
