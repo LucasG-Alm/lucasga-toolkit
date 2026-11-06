@@ -1,65 +1,66 @@
-"""cotar: ler polylines, numerar, agrupar e montar as anotacoes (sem AutoCAD)."""
+"""cotar: um lote de ferros -> numeros e tags (sem AutoCAD)."""
 
-import pytest
-
-from cotador.cotar import Bloqueado, GrupoCotar, PolyLida, TextoPerto, anotacoes_para_cotar, montar_cotar, texto_da_tag
+from cotador.cotar import Lote, PolyLida, TextoPerto, anotacoes_do_lote, numerar, texto_da_tag
 from cotador.lista import classificar
 
 H = 0.10  # altura do texto a 1:50, desenho em metros
 
 
-def reto(handle, x, y, comp=2.8, layer="FERRO"):
-    return PolyLida(handle, layer, ((x, y), (x + comp, y)))
+def reto(handle, x, y, comp=2.8):
+    return PolyLida(handle, "FERRO", ((x, y), (x + comp, y)))
 
 
-def test_ferros_iguais_viram_uma_linha_e_sem_texto_ganham_o_proximo_n():
-    """R-FER-COT-001 / 002 / 003"""
-    polys = [reto("A", 0, 0), reto("B", 0, 1), PolyLida("C", "X", ((0, 5), (0, 5.11), (0.91, 5.11)))]
-    textos = [TextoPerto("N7", 50, 50)]  # longe: so conta para o maior N do desenho
-    r = montar_cotar(polys, textos, H)
-    assert [(g.numero, g.handles, g.comprimento_cm) for g in r.grupos] == [(8, ["C"], 102), (9, ["A", "B"], 280)]
-    assert r.grupos[0].pecas == [11, 91]
-    assert r.grupos[1].faltando == ("bitola", "quantidade")
+def dobrado(handle, x, y):
+    return PolyLida(handle, "X", ((x, y), (x, y + 0.11), (x + 0.91, y + 0.11)))
 
 
-def test_rotulo_n_perto_do_ferro_da_o_numero():
-    """R-FER-COT-002: vale o N mais proximo, ate 10 alturas de texto."""
-    polys = [reto("A", 0, 0), reto("B", 0, 3)]
-    textos = [TextoPerto("N11", 1.4, 0.15), TextoPerto("N12", 1.4, 0.5), TextoPerto("N30", 1.4, 4.5)]
-    r = montar_cotar(polys, textos, H)
-    assert {g.numero: g.handles for g in r.grupos} == {11: ["A"], 31: ["B"]}
+def numeros(leitura):
+    return [(g.letra, g.numero, g.handles) for g in leitura.grupos]
 
 
-def test_ferro_com_tag_perto_do_trecho_principal_e_ja_cotado():
+def test_vazio_comeca_em_n1_de_cima_para_baixo_e_iguais_dividem_o_numero():
+    """R-FER-COT-002"""
+    polys = [reto("A", 0, 0), reto("B", 0, 1), dobrado("C", 0, 5), reto("D", 5, 5, comp=1.0)]
+    r = numerar(polys, [], H, Lote())
+    assert numeros(r) == [("N", 1, ["C"]), ("N", 2, ["D"]), ("N", 3, ["A", "B"])]
+    assert r.grupos[0].comprimento_cm == 102
+
+
+def test_numero_digitado_manda_e_letra_e_adotada():
+    """R-FER-COT-002"""
+    polys = [reto("A", 0, 1), reto("B", 0, 0, comp=1.0)]
+    textos = [TextoPerto("L9", 1.4, 1.1)]
+    assert numeros(numerar(polys, textos, H, Lote(inicial="L5"))) == [("L", 5, ["A"]), ("L", 6, ["B"])]
+    assert numeros(numerar(polys, [], H, Lote(inicial="t"))) == [("T", 1, ["A"]), ("T", 2, ["B"])]
+
+
+def test_sem_numero_rotulo_perto_manda_e_o_resto_pula_os_rotulos():
+    """R-FER-COT-002"""
+    polys = [reto("A", 0, 2), reto("B", 0, 0, comp=1.0)]
+    textos = [TextoPerto("N1", 1.4, 2.15), TextoPerto("N2", 30, 30)]
+    assert numeros(numerar(polys, textos, H, Lote())) == [("N", 1, ["A"]), ("N", 3, ["B"])]
+
+
+def test_ferro_com_tag_perto_do_trecho_principal_e_pulado():
     """R-FER-COT-004"""
     polys = [reto("A", 0, 0), reto("B", 0, 2)]
-    textos = [TextoPerto("3N4 %%C10 c=280", 1.4, -0.1)]
-    r = montar_cotar(polys, textos, H)
+    r = numerar(polys, [TextoPerto("3N4 %%C10 c=280", 1.4, -0.1)], H, Lote())
     assert [j["handle"] for j in r.ja_cotados] == ["A"]
-    assert [g.handles for g in r.grupos] == [["B"]]
-    assert r.grupos[0].numero == 5
+    assert numeros(r) == [("N", 1, ["B"])]
 
 
-def test_texto_da_tag_volta_igual_pela_aba_contar():
-    """R-FER-COT-007"""
-    g = GrupoCotar(numero=11, handles=["A"], pecas=[391], comprimento_cm=391, bitola=12.5, quantidade=4, multiplicador=2)
-    assert texto_da_tag(g) == "2x4N11 %%C12.5 c=391"
-    lida = classificar(texto_da_tag(g))
-    assert (lida.numero, lida.quantidade, lida.bitola, lida.comprimento_cm) == (11, 8, 12.5, 391)  # Contar le 2x4 como 8
-    g1 = GrupoCotar(numero=3, handles=["A"], pecas=[280], comprimento_cm=280, bitola=10.0, quantidade=1, espacamento="15")
-    assert texto_da_tag(g1) == "N3 %%C10 c/15 c=280"
+def test_tag_so_com_o_que_foi_digitado():
+    """R-FER-COT-003"""
+    assert texto_da_tag(Lote(quant="2x4", bitola=12.5), "N", 11, 391) == "2x4N11 %%C12.5 c=391"
+    assert texto_da_tag(Lote(quant="XX", espacamento="VAR"), "N", 1, 280) == "XXN1 c/VAR c=280"
+    assert texto_da_tag(Lote(), "L", 3, 100) == "L3 c=100"
+    lida = classificar(texto_da_tag(Lote(quant="2x4", bitola=10.0, espacamento="15"), "N", 2, 280))
+    assert (lida.numero, lida.quantidade, lida.bitola, lida.espacamento, lida.comprimento_cm) == (2, 8, 10.0, "15", 280)
 
 
 def test_anotacoes_tag_no_principal_e_cota_por_trecho():
-    """R-FER-COT-008"""
-    polys = {"C": PolyLida("C", "X", ((0, 0), (0, 0.11), (0.91, 0.11)))}
-    g = GrupoCotar(numero=8, handles=["C"], pecas=[11, 91], comprimento_cm=102, bitola=8.0, quantidade=2)
-    textos = [a.texto for a in anotacoes_para_cotar(polys, [g], 50)]
-    assert textos == ["2N8 %%C8 c=102", "11", "91"]
-
-
-def test_vermelho_bloqueia_cotar():
-    """R-FER-COT-003"""
-    g = GrupoCotar(numero=8, handles=["A"], pecas=[280], comprimento_cm=280)
-    with pytest.raises(Bloqueado, match="N8"):
-        anotacoes_para_cotar({"A": reto("A", 0, 0)}, [g], 50)
+    """R-FER-COT-007"""
+    polys = [dobrado("C", 0, 0)]
+    r = numerar(polys, [], H, Lote())
+    textos = [a.texto for a in anotacoes_do_lote({"C": polys[0]}, r.grupos, Lote(quant="2", bitola=8.0), 50)]
+    assert textos == ["2N1 %%C8 c=102", "11", "91"]

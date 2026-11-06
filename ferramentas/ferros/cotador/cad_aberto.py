@@ -318,8 +318,11 @@ def polys_de(entidades: Iterable, progresso: Callable | None = None) -> tuple[li
     return polys, arrays
 
 
-def textos_com_n(doc) -> list:
-    """Todo TEXT/MTEXT do model com N e numero (R-FER-COT-002 / 004), no ponto que o usuario ve."""
+def textos_com_n(doc, letra: str = "N") -> list:
+    """TEXT/MTEXT do model com a letra e numero (R-FER-COT-002 / 004), no ponto que o usuario ve.
+
+    Tags completas de outra letra tambem contam como "ja cotado": por isso o filtro e so letra + digito.
+    """
     import pythoncom
 
     from cotador.cotar import TextoPerto
@@ -330,7 +333,7 @@ def textos_com_n(doc) -> list:
     except Exception:
         pass
     selecao = doc.SelectionSets.Add(nome)
-    selecao.Select(5, None, None, _variant(pythoncom.VT_I2, [0, 1]), _variant(pythoncom.VT_VARIANT, ["TEXT,MTEXT", "*N#*"]))
+    selecao.Select(5, None, None, _variant(pythoncom.VT_I2, [0, 1]), _variant(pythoncom.VT_VARIANT, ["TEXT,MTEXT", f"*{letra}#*,*Ø*,*%%[cC]*,*∅*"]))
     saida = []
     for ent in selecao:
         texto = _texto(ent)
@@ -343,25 +346,14 @@ def textos_com_n(doc) -> list:
     return saida
 
 
-def ler_cotar(app, progresso: Callable | None = None):
-    """(info, polys, arrays, textos com N) ou None se cancelado."""
+def ler_cotar(app, progresso: Callable | None = None, letra: str = "N"):
+    """(info, polys, arrays, textos com a letra) ou None se cancelado."""
     info = desenho_ativo(app)
     ents = _selecao(app, "LWPOLYLINE,INSERT", progresso)
     if ents is None:
         return None
     polys, arrays = polys_de(ents, progresso)
-    return info, polys, arrays, textos_com_n(app.ActiveDocument)
-
-
-def polys_por_handle(doc, handles: Iterable[str]) -> dict:
-    """Geometria atual de cada ferro; o que foi apagado depois da leitura fica de fora."""
-    saida = {}
-    for h in handles:
-        try:
-            saida[h] = _poly(doc.HandleToObject(h))
-        except Exception:
-            pass
-    return saida
+    return info, polys, arrays, textos_com_n(app.ActiveDocument, letra)
 
 
 def cotar(app, anotacoes, layer: str = "TXT02", estilo: str = "R80R") -> dict:

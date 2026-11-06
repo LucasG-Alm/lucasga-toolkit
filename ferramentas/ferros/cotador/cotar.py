@@ -1,4 +1,4 @@
-"""Etapa 3 — Cotar: polylines do AutoCAD -> grade de grupos -> tags e cotas (R-FER-COT-*).
+"""Etapa 3 — Cotar por lote: campos digitados + polylines do AutoCAD -> tags e cotas (R-FER-COT-*).
 
 Nada aqui fala com o AutoCAD: `cad_aberto` le e desenha, isto decide.
 """
@@ -15,13 +15,25 @@ from cotador.geometria import Ferro, Ponto, Segmento
 from cotador.lista import TagLida, classificar
 from cotador.ordenacao import ordem_de_leitura
 
-PERTO_NUMERO = 10  # alturas de texto: rotulo N<i> que da o numero (R-FER-COT-002)
+PERTO_NUMERO = 10  # alturas de texto: rotulo que da o numero (R-FER-COT-002)
 PERTO_TAG = 3  # alturas de texto: tag que marca "ja cotado" (R-FER-COT-004)
-_ROTULO = re.compile(r"\s*N(\d+)\s*")
+_INICIAL = re.compile(r"\s*([A-Za-z]?)\s*(\d*)\s*")
 
 
-class Bloqueado(Exception):
-    pass
+@dataclass(frozen=True)
+class Lote:
+    """O que foi digitado na pagina; vazio fica fora da tag (R-FER-COT-001 / 003)."""
+
+    quant: str = ""
+    inicial: str = ""
+    bitola: float | None = None
+    espacamento: str = ""
+
+    def letra_e_numero(self) -> tuple[str, int | None]:
+        m = _INICIAL.fullmatch(self.inicial)
+        if not m:
+            raise ValueError(f"N inicial inválido: {self.inicial!r} (use N1, L5, T…)")
+        return (m.group(1) or "N").upper(), int(m.group(2)) if m.group(2) else None
 
 
 @dataclass(frozen=True)
@@ -44,20 +56,10 @@ class TextoPerto:
 
 @dataclass
 class GrupoCotar:
+    letra: str
     numero: int
     handles: list[str]
-    pecas: list[int]
     comprimento_cm: int
-    bitola: float | None = None
-    quantidade: int | None = None
-    multiplicador: int | None = None
-    espacamento: str | None = None
-    x: float = 0.0
-    y: float = 0.0
-
-    @property
-    def faltando(self) -> tuple[str, ...]:
-        return tuple(n for n, v in (("bitola", self.bitola), ("quantidade", self.quantidade)) if v is None)
 
 
 @dataclass
@@ -73,72 +75,73 @@ def _distancia(p: Ponto, s: Segmento) -> float:
     return math.dist(p, (ax + t * dx, ay + t * dy))
 
 
-def _numero(texto: str) -> tuple[int | None, bool]:
-    """(numero N do texto, se e tag completa)."""
+def _ler_texto(texto: str, letra: str) -> tuple[int | None, bool]:
+    """(numero se o texto e rotulo/tag da letra, se e tag completa de qualquer letra)."""
     lida = classificar(texto)
     if isinstance(lida, TagLida):
-        return (lida.numero, not lida.faltando) if lida.letra.upper() == "N" else (None, False)
-    m = _ROTULO.fullmatch(texto)
-    return (int(m.group(1)), False) if m else (None, False)
+        return (lida.numero if lida.letra == letra else None), not lida.faltando
+    m = re.fullmatch(rf"\s*{letra}(\d+)\s*", texto, re.IGNORECASE)
+    return (int(m.group(1)) if m else None), False
 
 
-def montar_cotar(polys: list[PolyLida], textos: list[TextoPerto], altura: float) -> LeituraCotar:
-    """R-FER-COT-001..004"""
-    numerados = [(t, *_numero(t.texto)) for t in textos]
-    numerados = [(t, n, completa) for t, n, completa in numerados if n is not None]
-    proximo = max((n for _, n, _ in numerados), default=0) + 1
+def numerar(polys: list[PolyLida], textos: list[TextoPerto], altura: float, lote: Lote) -> LeituraCotar:
+    """R-FER-COT-002 / 004"""
+    letra, inicio = lote.letra_e_numero()
+    lidos = [(t, *_ler_texto(t.texto, letra)) for t in textos]
+    tags = [t for t, _, completa in lidos if completa]
+    rotulos = [(t, n) for t, n, _ in lidos if n is not None]
 
     ferros = [p.ferro for p in polys]
     ja, livres = [], []
-    for i, (p, f) in enumerate(zip(polys, ferros)):
+    for i, f in enumerate(ferros):
         principal = f.segmentos[f.indice_trecho_principal]
-        if any(c and _distancia((t.x, t.y), principal) <= PERTO_TAG * altura for t, _, c in numerados):
+        if any(_distancia((t.x, t.y), principal) <= PERTO_TAG * altura for t in tags):
             mx, my = principal.ponto_medio
-            ja.append({"handle": p.handle, "x": mx, "y": my})
+            ja.append({"handle": polys[i].handle, "x": mx, "y": my})
         else:
             livres.append(i)
 
-    def numero_do_desenho(f: Ferro) -> int | None:
-        perto = [(min(_distancia((t.x, t.y), s) for s in f.segmentos), n) for t, n, _ in numerados]
+    def rotulo_perto(f: Ferro) -> int | None:
+        if inicio is not None:
+            return None  # numero digitado manda
+        perto = [(min(_distancia((t.x, t.y), s) for s in f.segmentos), n) for t, n in rotulos]
         perto = [d for d in perto if d[0] <= PERTO_NUMERO * altura]
         return min(perto)[1] if perto else None
 
     grupos: dict[tuple, GrupoCotar] = {}
-    ordem = [livres[j] for j in ordem_de_leitura([ferros[i] for i in livres])]
-    for i in ordem:
-        f = ferros[i]
-        chave = (numero_do_desenho(f), assinatura_canonica(f))
+    for j in ordem_de_leitura([ferros[i] for i in livres]):
+        i = livres[j]
+        chave = (rotulo_perto(ferros[i]), assinatura_canonica(ferros[i]))
         if chave not in grupos:
-            mx, my = f.segmentos[f.indice_trecho_principal].ponto_medio
-            grupos[chave] = GrupoCotar(chave[0] or 0, [], [round(s.comprimento * 100) for s in f.segmentos],
-                                       round(f.comprimento_total * 100), x=mx, y=my)
+            grupos[chave] = GrupoCotar(letra, chave[0] or 0, [], round(ferros[i].comprimento_total * 100))
         grupos[chave].handles.append(polys[i].handle)
+
+    usados = set() if inicio is not None else {n for _, n in rotulos}
+    proximo = inicio or 1
+    ordem_selecao = [p.handle for p in polys]
     for g in grupos.values():
-        g.handles.sort(key=[p.handle for p in polys].index)  # ordem da selecao, nao da leitura
+        g.handles.sort(key=ordem_selecao.index)
         if not g.numero:
+            while proximo in usados:
+                proximo += 1
             g.numero, proximo = proximo, proximo + 1
     return LeituraCotar(list(grupos.values()), ja)
 
 
-def texto_da_tag(g: GrupoCotar) -> str:
-    """R-FER-COT-007"""
-    prefixo = (f"{g.multiplicador}x" if g.multiplicador and g.multiplicador > 1 else "") + (str(g.quantidade) if g.quantidade and g.quantidade > 1 else "")
-    esp = f" c/{g.espacamento}" if g.espacamento else ""
-    return f"{prefixo}N{g.numero} %%C{g.bitola:g}{esp} c={g.comprimento_cm}"
+def texto_da_tag(lote: Lote, letra: str, numero: int, comprimento_cm: int) -> str:
+    """R-FER-COT-003"""
+    bitola = f" %%C{lote.bitola:g}" if lote.bitola else ""
+    esp = f" c/{lote.espacamento.strip()}" if lote.espacamento.strip() else ""
+    return f"{lote.quant.strip()}{letra}{numero}{bitola}{esp} c={comprimento_cm}"
 
 
-def anotacoes_para_cotar(polys: dict[str, PolyLida], grupos: list[GrupoCotar], escala: float) -> list[Anotacao]:
-    """R-FER-COT-003 / 008: bloqueia com vermelho; senao, tag e cotas de cada ferro."""
-    vermelho = [f"N{g.numero}" for g in grupos if g.faltando]
-    if vermelho:
-        raise Bloqueado(f"Preencha Ø e Qtd: {', '.join(vermelho)}")
+def anotacoes_do_lote(polys: dict[str, PolyLida], grupos: list[GrupoCotar], lote: Lote, escala: float) -> list[Anotacao]:
+    """R-FER-COT-007: tag no trecho principal e cota de cada trecho."""
     cfg = Config.na_escala(escala)
     saida = []
     for g in grupos:
-        tag = Tag(numero=g.numero, bitola=g.bitola, comprimento_cm=g.comprimento_cm)
+        tag = Tag(numero=g.numero, bitola=lote.bitola or 0, comprimento_cm=g.comprimento_cm)
         for h in g.handles:
-            if h not in polys:
-                continue  # apagada no AutoCAD depois da leitura
             a = anotacoes_do_ferro(polys[h].ferro, tag, cfg)
-            saida += [replace(a[0], texto=texto_da_tag(g)), *a[1:]]
+            saida += [replace(a[0], texto=texto_da_tag(lote, g.letra, g.numero, g.comprimento_cm)), *a[1:]]
     return saida

@@ -126,17 +126,16 @@ Sem tabela dinâmica: o resumo por posição é feito com fórmula. Não precisa
 
 ## Etapa 3 — Cotar ferros
 
-Mesma escala da página (padrão 1:50): texto de 2 mm no papel = 0,002 × escala no desenho (em metros). Layer `TXT02` e estilo `R80R`, editáveis na página.
+Fluxo por lote, sem grade: você digita os campos, seleciona os ferros no AutoCAD e ele escreve. Completa-se aos poucos, lote a lote; a conferência das quantidades é na aba Contar. Escala da página (padrão 1:50): texto de 2 mm no papel = 0,002 × escala no desenho (em metros). Layer `TXT02` e estilo `R80R`, editáveis.
 
 | ID | Regra |
 |----|-------|
-| R-FER-COT-001 | Lê as LWPOLYLINE selecionadas (seleção ativa ou pedida no AutoCAD), de qualquer layer. Polyline fechada ganha o vértice de volta ao início. |
-| R-FER-COT-002 | Número: texto `N<i>` sozinho (ou tag N completa) a até 10 alturas de texto do ferro dá o número; vale o mais próximo. Sem texto, recebe o próximo livre (maior N do desenho inteiro + 1), na ordem de leitura. Editável na grade. |
-| R-FER-COT-003 | Grade: uma linha por grupo de ferros iguais (mesmo número e mesma forma): N, peças (cm), c (cm calculado), Ø, Qtd, ×, c/. Ø e Qtd vermelhos até preencher; Cotar bloqueia com vermelho. |
-| R-FER-COT-004 | Ferro com tag completa a até 3 alturas de texto do trecho principal é "já cotado": vai para a lista à parte e é pulado. |
+| R-FER-COT-001 | Formulário: Quant (texto livre: `2`, `2x2`, `XX`, `YY`…), N inicial (`N5`, `L1`, `T`, vazio), Ø (lista das bitolas da tabela de peso + vazio), c/ (texto livre). "Cotar seleção" pede a seleção no AutoCAD (ou usa a ativa) e lê as LWPOLYLINE de qualquer layer; polyline fechada ganha o vértice de volta ao início. |
+| R-FER-COT-002 | Numeração: ferros de mesma forma e comprimento recebem o mesmo número; formas diferentes, números seguidos na ordem de leitura (de cima para baixo, da esquerda para a direita). Letra = a digitada (padrão N). Número digitado manda: começa nele. N sem número: rótulo `<letra><i>` a até 10 alturas de texto do ferro dá o número; sem rótulo, começa em 1, pulando os números dos rótulos. |
+| R-FER-COT-003 | A tag leva só o que foi digitado: `[Quant]<letra><i> [%%C<Ø>] [c/<c/>] c=<cm>` — c= calculado sai sempre (ex.: `2x4N11 %%C12.5 c=391`, `XXN1 c/VAR c=280`). Nada bloqueia o Cotar. |
+| R-FER-COT-004 | Ferro com tag completa a até 3 alturas de texto do trecho principal é "já cotado" e é pulado; a página diz quantos, com zoom. |
 | R-FER-COT-005 | Array blocks (`*U`) não são lidos; a página avisa quantos e oferece zoom em cada um. |
-| R-FER-COT-006 | Tags e cotas entram entre marcas de UNDO (um Ctrl+Z desfaz). Layer inexistente é criada; estilo inexistente usa o atual e avisa. |
-| R-FER-COT-007 | Formato da tag: `[M x][Q]N<i> %%C<Ø> [c/<esp>] c=<cm>` (ex.: `2x4N11 %%C12.5 c=391`); Q só se > 1, c/ só se preenchido. A aba Contar lê a tag de volta com os mesmos números. |
-| R-FER-COT-008 | Posição: a tag fica no trecho principal do lado oposto aos ganchos; ferro dobrado ganha a cota de cada trecho (regras do `anotacao.py`). Desenho diferente do lido bloqueia. |
-| R-FER-COT-009 | Depois de cotar, "Contar o que acabei de cotar" acrescenta as tags novas na aba Contar (sem duplicar). |
-| R-FER-COT-010 | A página tem as abas Contar \| Cotar; trocar de aba não perde o que está em cada uma. |
+| R-FER-COT-006 | Cada lote entra entre marcas de UNDO (um Ctrl+Z desfaz o lote). Layer inexistente é criada; estilo inexistente usa o atual e avisa. |
+| R-FER-COT-007 | Posição: a tag fica no trecho principal do lado oposto aos ganchos; ferro dobrado ganha a cota de cada trecho (regras do `anotacao.py`). |
+| R-FER-COT-008 | A página lista os lotes cotados nesta sessão (campos, números usados, quantos ferros) e "Contar o que acabei de cotar" acrescenta as tags novas na aba Contar (sem duplicar). |
+| R-FER-COT-009 | A página tem as abas Contar \| Cotar; trocar de aba não perde o que está em cada uma. |

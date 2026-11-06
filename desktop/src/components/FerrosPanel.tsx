@@ -34,7 +34,7 @@ const SEM_ITENS: never[] = [];
 // A regra mora no Python (ferramentas/ferros/cotador/pagina.py): a tela só mostra e devolve a grade editada.
 const PESO = 'ferros-peso';
 // ponytail: peso editado no localStorage do app; vira configuração do Toolkit se precisar valer entre máquinas
-function lerPeso(): Record<string, number> { try { return JSON.parse(localStorage.getItem(PESO) || '{}'); } catch { return {}; } }
+export function lerPeso(): Record<string, number> { try { return JSON.parse(localStorage.getItem(PESO) || '{}'); } catch { return {}; } }
 // Bitolas CA-60 (R-FER-PES-003): só a escolha do usuário fica aqui; o padrão vem do Python.
 const CA60 = 'ferros-ca60';
 function lerCa60(): number[] | undefined { try { return JSON.parse(localStorage.getItem(CA60) || 'null') ?? undefined; } catch { return undefined; } }
