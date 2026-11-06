@@ -24,8 +24,8 @@ test('converte sem Google e só habilita consultas após ciência do consumo', a
 test('adiciona resultado à lista e exporta seleção sem duplicar a entrada', async () => {
   const api = setup();
   await userEvent.type(screen.getByLabelText('Latitude'), '-23'); await userEvent.type(screen.getByLabelText('Longitude'), '-46');
-  await waitFor(()=>expect((screen.getByRole('button',{name:'Salvar ponto'}) as HTMLButtonElement).disabled).toBe(false));
-  await userEvent.click(screen.getByRole('button',{name:'Salvar ponto'}));
+  await waitFor(()=>expect((screen.getByRole('button',{name:'Adicionar à lista'}) as HTMLButtonElement).disabled).toBe(false));
+  await userEvent.click(screen.getByRole('button',{name:'Adicionar à lista'}));
   await userEvent.click(screen.getByRole('button', { name: 'Exportar KMZ' }));
   await waitFor(() => expect(api.exportPoints).toHaveBeenCalledWith([expect.objectContaining({ latitude: -23, longitude: -46 })], 'kmz', undefined));
 });
@@ -37,7 +37,7 @@ test('ignora resposta antiga após editar a coordenada', async () => {
   await userEvent.clear(screen.getByLabelText('Latitude'));
   resolve({ point: { id: 'velho', name: 'Velho', latitude: -23, longitude: -46, source: 'user' }, requests: { geocode: 0, elevation: 0 } });
   await new Promise(done => setTimeout(done, 10));
-  expect((screen.getByRole('button', {name:'Salvar ponto'}) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole('button', {name:'Adicionar à lista'}) as HTMLButtonElement).disabled).toBe(true);
 });
 test('lote exige confirmação do CRS e reinspeção após alterar colunas', async () => {
   const api = setup();
@@ -82,7 +82,7 @@ test('painel inativo pausa consulta agendada e ignora resposta pendente', async 
   await waitFor(() => expect(api.locationQuery).toHaveBeenCalledTimes(1), { timeout: 2500 });
   view.rerender(<LocationPanel api={api} queue={queue} onError={error} active={false} />);
   resolve({ point: { id: 'old', name: 'Antigo', latitude: -23, longitude: -46, source: 'user' }, requests: { geocode: 0, elevation: 0 } });
-  await new Promise(done => setTimeout(done, 20)); expect((screen.getByRole('button',{name:'Salvar ponto'}) as HTMLButtonElement).disabled).toBe(true);
+  await new Promise(done => setTimeout(done, 20)); expect((screen.getByRole('button',{name:'Adicionar à lista'}) as HTMLButtonElement).disabled).toBe(true);
 });
 test('candidato escolhido é reconsultado pelas coordenadas e falha de quota suspende Google', async () => {
   const api = setup(); vi.mocked(api.locationQuery).mockImplementation(async (input) => input.mode === 'address' ? ({ candidates: [{ address: 'Rua escolhida', latitude: -23, longitude: -46, partial: false, precision: 'ROOFTOP' }], requests: { geocode: 1, elevation: 0 } }) : ({ point: { id: 'g', name: 'Encontrado', latitude: -23, longitude: -46, source: 'google' }, requests: { geocode: 0, elevation: 1 } }));
@@ -100,7 +100,7 @@ test('painel simultâneo mantém representações visíveis e abre configuraçã
   const configure = vi.fn();
   const api = {parseLocationText: vi.fn(async () => null), locationQuery: vi.fn()} as unknown as ToolkitAPI;
   render(<LocationPanel api={api} queue={{status:'idle',stopRequested:false,jobs:[]}} onError={vi.fn()} onConfigureGoogle={configure}/>);
-  for (const label of ['Latitude','Longitude','E / X','N / Y','Endereço','Altitude']) expect(screen.getByLabelText(label, {selector:'input'})).toBeTruthy();
+  for (const label of ['Latitude','Longitude','E (m)','N (m)','Endereço','Altitude']) expect(screen.getByLabelText(label, {selector:'input'})).toBeTruthy();
   expect(screen.queryByLabelText('Tipo de entrada')).toBeNull();
   await userEvent.click(screen.getByRole('button',{name:'API key Google'}));
   expect(configure).toHaveBeenCalledTimes(1);
@@ -109,8 +109,8 @@ test('painel simultâneo mantém representações visíveis e abre configuraçã
 test('Novo preserva lista, atualização preserva ID e exportações projetadas exigem fuso escolhido', async () => {
   const api=setup();
   await userEvent.type(screen.getByLabelText('Latitude'),'-23');await userEvent.type(screen.getByLabelText('Longitude'),'-46');
-  await waitFor(()=>expect((screen.getByRole('button',{name:'Salvar ponto'}) as HTMLButtonElement).disabled).toBe(false));
-  await userEvent.type(screen.getByLabelText('Nome do ponto'),'Marco A');await userEvent.click(screen.getByRole('button',{name:'Salvar ponto'}));
+  await waitFor(()=>expect((screen.getByRole('button',{name:'Adicionar à lista'}) as HTMLButtonElement).disabled).toBe(false));
+  await userEvent.type(screen.getByLabelText('Nome do ponto'),'Marco A');await userEvent.click(screen.getByRole('button',{name:'Adicionar à lista'}));
   const rowInput=screen.getAllByDisplayValue('Marco A').find(el=>el.closest('td')) as HTMLInputElement;
   const idLabel=rowInput.getAttribute('aria-label');
   await userEvent.clear(screen.getByLabelText('Latitude'));await userEvent.type(screen.getByLabelText('Latitude'),'-24');
@@ -122,7 +122,7 @@ test('Novo preserva lista, atualização preserva ID e exportações projetadas 
   await userEvent.type(screen.getByLabelText('Fuso'),'22');await userEvent.selectOptions(screen.getByLabelText('Hemisfério'),'N');
   await userEvent.click(screen.getByRole('button',{name:'Exportar XLSX'}));
   expect(api.exportPoints).toHaveBeenCalledWith([expect.objectContaining({name:'Marco A'})],'xlsx',undefined,{zone:22,hemisphere:'N',datum:'SIRGAS2000'});
-  await userEvent.click(screen.getByRole('button',{name:'Novo'}));expect(screen.getByLabelText('Latitude').getAttribute('value')).toBe('');
+  await userEvent.click(screen.getByRole('button',{name:'Novo ponto'}));expect(screen.getByLabelText('Latitude').getAttribute('value')).toBe('');
   expect(screen.getByLabelText(idLabel!)).toBeTruthy();
 });
 
@@ -136,7 +136,7 @@ test('copia valores atuais e mantém ação útil quando clipboard falha', async
   expect(api.locationQuery).toHaveBeenCalled();
 });
 
-test.each(['Latitude','Longitude','E / X','N / Y'])('colagem composta em %s passa pelo parser Python',async label=>{
+test.each(['Latitude','Longitude','E (m)','N (m)'])('colagem composta em %s passa pelo parser Python',async label=>{
   const api=setup();vi.mocked(api.parseLocationText).mockResolvedValue({kind:'latlon',latitude:-22,longitude:-45});
   const user=userEvent.setup();await user.click(screen.getByLabelText(label));await user.paste('-22, -45');
   await waitFor(()=>expect(api.parseLocationText).toHaveBeenCalledWith('-22, -45'));
@@ -162,7 +162,7 @@ test('lote pausado mantém resultados concluídos disponíveis para incluir e ex
 test('cópia em base KML preserva escolha de formato e resultados ficam acessíveis',async()=>{
  const api=setup();api.pick=vi.fn(async()=>['base.kml']);api.openResult=vi.fn(async()=>{});
  await userEvent.type(screen.getByLabelText('Latitude'),'-23');await userEvent.type(screen.getByLabelText('Longitude'),'-46');
- await waitFor(()=>expect((screen.getByRole('button',{name:'Salvar ponto'}) as HTMLButtonElement).disabled).toBe(false));await userEvent.click(screen.getByRole('button',{name:'Salvar ponto'}));
+ await waitFor(()=>expect((screen.getByRole('button',{name:'Adicionar à lista'}) as HTMLButtonElement).disabled).toBe(false));await userEvent.click(screen.getByRole('button',{name:'Adicionar à lista'}));
  await userEvent.selectOptions(screen.getByLabelText('Formato da cópia'),'kml');await userEvent.click(screen.getByRole('button',{name:'Adicionar em cópia de KML/KMZ existente'}));
  expect(api.exportPoints).toHaveBeenCalledWith([expect.objectContaining({latitude:-23})],'kml','base.kml');
  await userEvent.click(await screen.findByRole('button',{name:'Abrir pontos.kmz'}));expect(api.openResult).toHaveBeenCalledWith('pontos.kmz',false);
@@ -176,8 +176,8 @@ test('colar endereço com vírgula mantém modo endereço e não aciona parser d
 async function saveMarco() {
   const api = setup();
   await userEvent.type(screen.getByLabelText('Latitude'), '-23'); await userEvent.type(screen.getByLabelText('Longitude'), '-46');
-  await waitFor(() => expect((screen.getByRole('button', { name: 'Salvar ponto' }) as HTMLButtonElement).disabled).toBe(false));
-  await userEvent.type(screen.getByLabelText('Nome do ponto'), 'Marco A'); await userEvent.click(screen.getByRole('button', { name: 'Salvar ponto' }));
+  await waitFor(() => expect((screen.getByRole('button', { name: 'Adicionar à lista' }) as HTMLButtonElement).disabled).toBe(false));
+  await userEvent.type(screen.getByLabelText('Nome do ponto'), 'Marco A'); await userEvent.click(screen.getByRole('button', { name: 'Adicionar à lista' }));
   return api;
 }
 test('lixeira na primeira coluna remove o ponto da lista', async () => {
@@ -186,11 +186,11 @@ test('lixeira na primeira coluna remove o ponto da lista', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Remover ponto Marco A' }));
   expect(screen.getByText('0 na sessão')).toBeTruthy();
 });
-test('Reiniciar pede confirmação e então limpa campos e lista', async () => {
+test('Limpar sessão pede confirmação e então limpa campos e lista', async () => {
   await saveMarco();
-  await userEvent.click(screen.getByRole('button', { name: 'Reiniciar' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Limpar sessão' }));
   expect(screen.getByText('1 na sessão')).toBeTruthy();
-  await userEvent.click(screen.getByRole('button', { name: 'Confirmar reinício' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Confirmar limpeza' }));
   expect(screen.getByText('0 na sessão')).toBeTruthy(); expect((screen.getByLabelText('Latitude') as HTMLInputElement).value).toBe('');
 });
 test('endereço digitado com a consulta automática desligada avisa o que fazer', async () => {

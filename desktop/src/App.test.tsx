@@ -36,10 +36,13 @@ function setup(state: QueueState = { status: 'idle', stopRequested: false, jobs:
 test('pasta mostra compatíveis, permite escolher e envia somente a seleção', async () => {
   const api = setup();
   render(<App />);
+  await userEvent.click(await screen.findByRole('button', {name:'Revisar ortografia'}));
   await userEvent.click(await screen.findByRole('button', { name: /Selecionar pasta/ }));
   await screen.findByText('área.dwg');
   expect(screen.queryByText('modelo.json')).toBeNull();
-  await userEvent.selectOptions(screen.getByLabelText('Tema'), 'criativo');
+  await userEvent.click(screen.getByRole('button', {name:'Configurações'}));
+  await userEvent.selectOptions(await screen.findByLabelText('Tema'), 'criativo');
+  await userEvent.click(screen.getByRole('button', {name:'Revisar ortografia'}));
   expect(screen.getByText('área.dwg')).toBeTruthy();
   await userEvent.click(screen.getByRole('button', { name: /Executar 1 arquivo/ }));
   await waitFor(() => expect(api.start).toHaveBeenCalledWith({ tool: 'ortografia', inputs: ['C:\\pasta\\área.dwg'], options: {} }));
@@ -49,9 +52,9 @@ test('pasta mostra compatíveis, permite escolher e envia somente a seleção', 
 
 test('ferramentas manuais mostram instruções e não oferecem execução', async () => {
   setup(); render(<App />);
-  await userEvent.click(await screen.findByRole('button', { name: /PTS3D/ }));
-  expect(await screen.findByText(/use NETLOAD/)).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /Executar \d/ })).toBeNull();
+  await userEvent.click(await screen.findByRole('button', { name: /Separar layouts/ }));
+  expect(await screen.findByRole('heading', {name: 'Separar layouts'})).toBeTruthy();
+  expect(screen.queryByRole('button', {name: 'PTS3D'})).toBeNull();
 });
 
 test('fila pausada mantém falha e resultados, com opção de continuar e descartar', async () => {
@@ -89,11 +92,11 @@ test('lista de pontos permanece ao mudar de ferramenta e abrir configurações',
   const api = setup(); api.locationQuery = vi.fn(async () => ({ point: { id: 'p', name: 'Ponto persistido', latitude: -23, longitude: -46, source: 'user' as const }, requests: { geocode: 0, elevation: 0 } }));
   render(<App />); await userEvent.click(await screen.findByRole('button', { name: /Coordenadas e localização/ }));
   await userEvent.type(screen.getByLabelText('Latitude'), '-23'); await userEvent.type(screen.getByLabelText('Longitude'), '-46');
-  await waitFor(()=>expect((screen.getByRole('button',{name:'Salvar ponto'}) as HTMLButtonElement).disabled).toBe(false));
-  await userEvent.click(screen.getByRole('button',{name:'Salvar ponto'}));
-  await userEvent.click(screen.getByRole('button', { name: 'API key Google' })); await screen.findByText('Aparência e temas');
+  await waitFor(()=>expect((screen.getByRole('button',{name:'Adicionar à lista'}) as HTMLButtonElement).disabled).toBe(false));
+  await userEvent.click(screen.getByRole('button',{name:'Adicionar à lista'}));
+  await userEvent.click(screen.getByRole('button', { name: 'Configurar Google' })); await screen.findByText('Personalizar cores');
   await userEvent.click(screen.getByRole('button', { name: /Coordenadas e localização/ }));
   expect(screen.getAllByDisplayValue('Ponto persistido')[0]).toBeTruthy();
-  await userEvent.click(screen.getByRole('button', { name: /PTS3D/ })); await userEvent.click(screen.getByRole('button', { name: /Coordenadas e localização/ }));
+  await userEvent.click(screen.getByRole('button', { name: /Separar layouts/ })); await userEvent.click(screen.getByRole('button', { name: /Coordenadas e localização/ }));
   expect(screen.getAllByDisplayValue('Ponto persistido')[0]).toBeTruthy();
 });

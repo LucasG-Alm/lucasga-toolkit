@@ -18,9 +18,9 @@ test('seletor aplica a identidade e restaura a preferência ao reabrir', async (
   expect(document.documentElement.dataset.theme).toBe('iterativo');
 });
 
-test('preferência desconhecida volta para Sistêmico sem bloquear o app', () => {
+test('preferência desconhecida volta para Blueprint sem bloquear o app', () => {
   localStorage.setItem('lucasga-toolkit-theme', 'inexistente');
-  expect(readThemeId()).toBe('sistemico');
+  expect(readThemeId()).toBe('blueprint');
 });
 
 test('cálculo de contraste distingue preto/branco e cores iguais', () => {
@@ -28,7 +28,7 @@ test('cálculo de contraste distingue preto/branco e cores iguais', () => {
   expect(contrast('#ffffff', '#ffffff')).toBe(1);
 });
 
-test.each(['sistemico', 'criativo', 'iterativo'])('%s mantém texto legível e as cores de identidade', id => {
+test.each(['blueprint','prancha','sistemico', 'criativo', 'iterativo'])('%s mantém texto legível e as cores de identidade', id => {
   const theme = themes.find(item => item.id === id)!;
   const tokens = themeTokens(id);
   expect(tokens['--primary']).toBe(theme.primary);
@@ -41,9 +41,9 @@ test.each(['sistemico', 'criativo', 'iterativo'])('%s mantém texto legível e a
   expect(contrast(tokens['--surface'], tokens['--muted-foreground'])).toBeGreaterThanOrEqual(4.5);
 });
 
-test('catálogo oferece somente os três temas aprovados com os fundos da prévia', () => {
+test('catálogo oferece os cinco temas com os fundos da prévia', () => {
   render(<ThemeSwitch />);
-  expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual(['Sistêmico', 'Criativo', 'Iterativo']);
+  expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual(['Blueprint', 'Prancha (claro)', 'Sistêmico', 'Criativo', 'Iterativo']);
   expect(themeTokens('sistemico')['--background']).toBe('#0F172A');
   expect(themeTokens('criativo')['--background']).toBe('#181A1F');
   expect(themeTokens('iterativo')['--background']).toBe('#120D1C');

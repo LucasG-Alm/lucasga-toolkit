@@ -94,7 +94,7 @@ test('ferramentas geográficas exigem seleção explícita e ciência de chamada
 });
 
 test('painel unificado substitui quatro entradas sem remover adaptadores antigos', () => {
-  assert.equal(visibleTools.length, 12); // + Contar ferros
+  assert.equal(visibleTools.length, 9); // + Contar ferros
   assert.ok(visibleTools.some(tool => tool.id === 'localizacao'));
   for (const id of ['converter', 'geocodificar', 'enderecos', 'altitude']) {
     assert.ok(tools.some(tool => tool.id === id));
@@ -104,4 +104,9 @@ test('painel unificado substitui quatro entradas sem remover adaptadores antigos
   assert.throws(() => buildRequest('localizacao', 'pontos.csv', { mode: 'utm', zone: 61, hemisphere: 'S', datum: 'SIRGAS2000' }), /fuso/i);
   assert.throws(() => buildRequest('localizacao', 'pontos.csv', { lookupAddress: true }), /consultas/i);
   assert.equal(usesGoogle(tools.find(tool => tool.id === 'localizacao'), { lookupAddress: false, lookupElevation: false }), false);
+});
+
+test('catálogo mantém quatro grupos e preserva comandos ocultos', () => {
+ assert.deepEqual(visibleTools.map(t => t.id), ['localizacao','cad-kmz','dividir','limpar','ferros','ortografia','aprender','galeria','drenagem']);
+ for (const id of ['ferros','modelos3d','pts3d','malha']) assert.ok(tools.find(t=>t.id===id));
 });

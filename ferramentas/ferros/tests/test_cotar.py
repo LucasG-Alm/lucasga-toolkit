@@ -64,3 +64,13 @@ def test_anotacoes_tag_no_principal_e_cota_por_trecho():
     r = numerar(polys, [], H, Lote())
     textos = [a.texto for a in anotacoes_do_lote({"C": polys[0]}, r.grupos, Lote(quant="2", bitola=8.0), 50)]
     assert textos == ["2N1 %%C8 c=102", "11", "91"]
+
+def test_comprimento_opcional_na_tag():
+    assert texto_da_tag(Lote(quant="2", incluir_comprimento=False), "N", 1, 280) == "2N1"
+    assert texto_da_tag(Lote(), "N", 1, 280) == "N1 c=280"
+
+def test_pedido_preserva_opcao_de_comprimento():
+    from cotador.pagina import _lote
+
+    assert _lote({}).incluir_comprimento is True
+    assert _lote({"incluirComprimento": False}).incluir_comprimento is False

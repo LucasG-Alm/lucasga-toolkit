@@ -19,6 +19,7 @@ function setup() {
 }
 test('seção Google permite selecionar e salvar referência env explícita', async () => {
   const api = setup();
+  await userEvent.click(screen.getByRole('tab', { name: 'Google' }));
   await userEvent.click(await screen.findByRole('button', { name: 'Selecionar arquivo .env' }));
   expect((screen.getByLabelText('Arquivo .env') as HTMLInputElement).value).toBe('C:/chosen.env');
   await userEvent.click(screen.getByRole('button', { name: 'Salvar arquivo .env' }));
@@ -26,6 +27,7 @@ test('seção Google permite selecionar e salvar referência env explícita', as
 });
 test('chave é mascarada, limpa após enviar e não entra nas configurações persistidas', async () => {
   const api = setup();
+  await userEvent.click(screen.getByRole('tab', { name: 'Google' }));
   const input = await screen.findByLabelText('Chave Google Maps para esta sessão');
   expect(input.getAttribute('type')).toBe('password');
   await userEvent.type(input, 'synthetic-session-key');

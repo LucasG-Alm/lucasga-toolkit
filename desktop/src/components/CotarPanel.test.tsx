@@ -63,3 +63,14 @@ test('vários lotes vão juntos para a aba Contar', async () => {
   await userEvent.click(screen.getByRole('tab', { name: 'Cotar' }));
   expect(screen.getByText(/N1–N2/)).toBeTruthy(); // a aba Cotar não perdeu os lotes
 });
+
+test('comprimento é opcional no pedido e na prévia', async () => {
+  const {api, ferros} = setup(() => ({}));
+  render(<CotarPanel api={api} onError={() => {}} onContar={() => {}}/>);
+  await userEvent.click(screen.getByRole('checkbox', {name:'Incluir comprimento na tag (c=)'}));
+  expect(screen.queryByText('N1 c=…')).toBeNull();
+  await userEvent.click(screen.getByRole('button', {name:'Cotar seleção'}));
+  expect(ferros).toHaveBeenCalledWith(expect.objectContaining({incluirComprimento:false}));
+  expect(screen.getByText('Campos da tag')).toBeTruthy();
+  expect(screen.getByRole('group', {name:'Escolher bitola'})).toBeTruthy();
+});
