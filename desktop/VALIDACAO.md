@@ -116,3 +116,42 @@ Nenhum erro de console. Capturas em `test-results/design-export/`.
 TypeScript: `npx tsc --noEmit` passou. Saídas em `design-export/`, fora do Git.
 Sem consultas Google ou acesso aos arquivos selecionados na demonstração.
 
+
+## Revisão visual web — 2026-11-06
+
+Prévia R1 em `design-export/design-refresh-r1/index.html`, aberta no Arc. Quatro grupos e oito ferramentas; ambiente antes de Google; cores recolhidas; entrada compacta e formulário mais largo. Build passou. Primeira suíte encontrou expectativas antigas e timeouts; rodada serial concluída: 129 testes React aprovados e 50 testes Node aprovados. Nenhum novo pacote Electron gerado. Aceite visual de Lucas pendente.
+
+## Redesenho HTML 2 — 06/11/2026
+
+Prévia React em design-export/design-html2-review/index.html, com cinco HTMLs independentes. Build TypeScript/Vite aprovado. Backend: 51 testes aprovados. Primeira suíte React: 129 aprovados; verificação adicional de prontidão/temas: 14 aprovados. Rodada final registrada separadamente ao concluir.
+
+Ferros ativo em CAD; componentes reais preservados. Testes de leitura, edição, lotes, planilha, plotagem e conflito usam mocks. Nenhuma operação CAD real foi executada. Renderização e responsividade aguardam avaliação por Lucas; não houve captura ou controle da tela. Pacote Electron ainda não gerado nesta etapa.
+
+Rodada final desta revisão: 136 testes React aprovados (12 arquivos), 51 testes Node aprovados; build e exportação dos cinco temas aprovados. HTMLs conferidos por estrutura: JS/CSS incorporados e Ferros presente. Comparação visual renderizada permanece pendente.
+
+### Ferros — fidelidade R1
+Composições FerrosSection/FerrosEmpty sobre Card, tokens locais, abas segmentadas, cartões e Cotar em duas colunas. 22 testes Contar/Cotar aprovados; build e exportação aprovados. Prévia em design-export/ferros-fidelity-r1/. Comparação renderizada e integração AutoCAD real pendentes.
+
+Ferros R2: ícones responsivos, opções sempre visíveis, ajuda inferior e comprimento opcional ponta a ponta. 23 testes React e 27 Python aprovados; build/export aprovados. Aceite visual e AutoCAD real pendentes.
+
+Ferros — reprodução HTML 2: três campos na primeira linha, bitolas em botões, Lotes cotados em cartão adjacente e fontes IBM Plex incorporadas do arquivo fornecido. Tutorial extra removido. 23 testes React aprovados; build e exportação aprovados. Referência em design-export/ferros-modelo-html2/. Comparação visual renderizada continua pendente; tela do usuário não acessada.
+## Aceite de Ferros e entrega para teste — 06/11/2026
+
+Lucas aprovou a prévia ferros-modelo-html2. Pacote de teste em release/0.5.0-ferros-html2/, preservando as entregas anteriores. A conferência de recursos encontrou interface compilada, Ferros no catálogo e cotador atualizado. Ferramentas sem arquivos de projetos; os CSVs distribuídos no runtime Python são fixtures da biblioteca numpy.
+
+Validação: 137 testes React, 51 testes Node e 27 testes Python do cotador/página aprovados; build aprovado. Nenhuma janela do aplicativo foi aberta nesta etapa. Execução no AutoCAD/Excel real fica pendente para o teste de Lucas. Aprovação visual refere-se a Ferros; Coordenadas e demais telas continuam aguardando a revisão de fidelidade.
+
+Portátil concluído com exit code 0: release/0.5.0-ferros-html2/LucasGA Toolkit 0.5.0.exe. Não foi aberto automaticamente.
+## Coordenadas — atualização pelo modelo HTML 2
+
+- Formulário “1 Informe o ponto”, grupos geográficos/UTM/endereço, campo de nome antes das opções Google e ação de salvar em largura total.
+- Mapa grande na coluna direita, mínimo 620 px e crescimento junto ao formulário. Abaixo de 1100 px de janela, mapa abaixo com mínimo 520 px. Expansão preservada.
+- Controles do mapa no cabeçalho, com atalhos Esri/Google Satélite/Mapa. Seletor original e comportamento online preservados.
+- Lista “2 Lista de pontos” e estado vazio seguindo o modelo. Conversão, confirmação do CRS, consultas Google, lista e exportações continuam nos componentes reais.
+
+Validação: 22 testes LocationPanel aprovados após ajuste dos rótulos; 11 testes LocationMap e 25 do controlador aprovados. Build e exportação web aprovados. Testes com mocks; nenhuma captura da tela ou consulta Google real.
+Prévia: design-export/coordenadas-modelo-html2/lucasga-toolkit-blueprint.html. Aceite visual ainda pendente.
+
+Aceite de Coordenadas registrado em 06/11/2026: mapa grande, botão MapPinPlus junto a centralizar/enquadrar/expandir. Pacote final em release/0.5.0-ferros-coordenadas-final. Nenhum controle de tela ou abertura automática. Execução AutoCAD/Excel e consultas Google reais continuam pendentes.
+
+Pacote final concluído com exit code 0; arquivo verificado. Rodada final: 137 testes React aprovados. Novo executável não foi aberto automaticamente.

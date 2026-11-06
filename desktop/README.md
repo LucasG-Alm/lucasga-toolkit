@@ -289,3 +289,7 @@ Não precisa de servidor ou Electron. Os exemplos e execuções são simulados;
 nenhum arquivo é lido e nenhuma chamada Google é realizada. Não informe credenciais reais.
 O código de demonstração é separado da entrada do aplicativo instalado.
 
+
+### Prévia do novo design
+
+Abra `design-export/design-html2-review/index.html` para escolher um dos cinco temas. Cada HTML funciona offline com dados sintéticos. A prévia usa os mesmos componentes React do aplicativo. Ferros aparece em CAD; operações AutoCAD/Excel exigem o desktop real. Esta revisão aguarda aceite visual antes do novo portátil.
