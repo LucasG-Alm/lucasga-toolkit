@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Expand, LocateFixed, Minimize, Plus, Scan } from 'lucide-react';
+import { Expand, LocateFixed, Minimize, MapPinPlus, Scan } from 'lucide-react';
 import { Button } from './ui/button';
 import type { LocationPoint, MapProvider, ToolkitAPI } from '../../shared/contracts';
 import './location-map.css';
@@ -130,12 +130,13 @@ export function LocationMap({ api, point, points, selected, onSelect, onAddPoint
     return () => { clearTimeout(timer); document.removeEventListener('keydown', keydown); if (expanded) before?.focus(); };
   }, [expanded]);
   return <section ref={dialog} className={`location-map location-editable-map ${expanded ? 'location-map-expanded' : ''} ${adding ? 'is-adding' : ''}`} role={expanded ? 'dialog' : undefined} aria-modal={expanded || undefined} aria-label="Mapa da localização">
+    <div className="location-map-toolbar">      <div className="location-map-base"><div className="location-map-tabs">{([['esri','Esri Satélite'],['google-satellite','Google Satélite'],['osm','Mapa']] as const).map(([id,label])=><button key={id} type="button" aria-pressed={provider===id} onClick={()=>{setProvider(id);try{localStorage.setItem('toolkit-map-base',id);}catch{}}}>{label}</button>)}</div><select className="location-map-provider-select" aria-label="Base do mapa" value={provider} onChange={e => { const value = e.target.value as MapProvider; setProvider(value); try { localStorage.setItem('toolkit-map-base', value); } catch { /* Session preference remains usable when storage is unavailable. */ } }}><option value="osm">OpenStreetMap</option><option value="esri">Esri Satélite</option><option value="google-road">Google Maps</option><option value="google-satellite">Google Satélite</option></select><label><input type="checkbox" checked={online} onChange={e => setOnline(e.target.checked)} />Online</label></div>
+      <div className="location-map-navigation"><Button variant="outline" size="icon" title="Centralizar no ponto" aria-label="Centralizar no ponto" disabled={!active || (!google && active.source === 'google')} onClick={() => active && map.current?.setView([active.latitude, active.longitude], map.current.getZoom())}><LocateFixed /></Button><Button variant="outline" size="icon" title="Enquadrar pontos" aria-label="Enquadrar pontos" disabled={!visible.length} onClick={() => map.current?.fitBounds(L.latLngBounds(visible.map(p => [p.latitude, p.longitude])), { maxZoom: 17, padding: [25, 25] })}><Scan /></Button><Button ref={trigger} variant="outline" size="icon" title={expanded ? 'Recolher mapa' : 'Expandir mapa'} aria-label={expanded ? 'Recolher mapa' : 'Expandir mapa'} onClick={() => setExpanded(!expanded)}>{expanded ? <Minimize /> : <Expand />}</Button>      {onAddPoint && <Button className="location-map-add" size="icon" variant={adding ? 'default' : 'outline'} aria-label="Adicionar ponto no mapa" title={adding ? 'Cancelar adição de ponto' : 'Adicionar ponto no mapa'} aria-pressed={adding} onClick={() => setAdding(!adding)}><MapPinPlus /></Button>}</div></div>
     <div className="location-map-body">
       <div ref={host} className="location-map-canvas" />
-      {onAddPoint && <Button className="location-map-add" size="icon" variant={adding ? 'default' : 'outline'} aria-label="Adicionar ponto no mapa" title={adding ? 'Cancelar adição de ponto' : 'Adicionar ponto no mapa'} aria-pressed={adding} onClick={() => setAdding(!adding)}><Plus /></Button>}
+
       {adding && <p className="location-map-tip" role="status">Clique no mapa para posicionar um novo ponto. Escape cancela.</p>}
-      <div className="location-map-base"><select aria-label="Base do mapa" value={provider} onChange={e => { const value = e.target.value as MapProvider; setProvider(value); try { localStorage.setItem('toolkit-map-base', value); } catch { /* Session preference remains usable when storage is unavailable. */ } }}><option value="osm">OpenStreetMap</option><option value="esri">Esri Satélite</option><option value="google-road">Google Maps</option><option value="google-satellite">Google Satélite</option></select><label><input type="checkbox" checked={online} onChange={e => setOnline(e.target.checked)} />Online</label></div>
-      <div className="location-map-navigation"><Button variant="outline" size="icon" title="Centralizar no ponto" aria-label="Centralizar no ponto" disabled={!active || (!google && active.source === 'google')} onClick={() => active && map.current?.setView([active.latitude, active.longitude], map.current.getZoom())}><LocateFixed /></Button><Button variant="outline" size="icon" title="Enquadrar pontos" aria-label="Enquadrar pontos" disabled={!visible.length} onClick={() => map.current?.fitBounds(L.latLngBounds(visible.map(p => [p.latitude, p.longitude])), { maxZoom: 17, padding: [25, 25] })}><Scan /></Button><Button ref={trigger} variant="outline" size="icon" title={expanded ? 'Recolher mapa' : 'Expandir mapa'} aria-label={expanded ? 'Recolher mapa' : 'Expandir mapa'} onClick={() => setExpanded(!expanded)}>{expanded ? <Minimize /> : <Expand />}</Button></div>
+
     </div>
     {!google && [point, ...points].some(p => p?.source === 'google') && <p className="helper">Pontos encontrados pelo Google aparecem somente nas bases Google. Coordenadas fornecidas por você continuam disponíveis.</p>}
     {message && <p role="status" className="helper">{message}</p>}
@@ -143,5 +144,3 @@ export function LocationMap({ api, point, points, selected, onSelect, onAddPoint
     <p className="helper">Imagens do mapa têm consumo separado das consultas de endereço e altitude.</p>
   </section>;
 }
-
-

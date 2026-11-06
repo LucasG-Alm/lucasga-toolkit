@@ -12,7 +12,7 @@ export function Results({ state, api, onError }: { state: QueueState; api: Toolk
   const completed = state.jobs.filter(job => job.status === 'succeeded').length;
   function action(value: 'stop' | 'resume' | 'discard') { void api.queue(value).catch(onError); }
   return <Card className="panel results" aria-live="polite">
-    <CardHeader className="pb-3"><CardTitle className="result-heading"><div><span className="step">3</span>Execuções e resultados</div><span>{state.jobs.length ? `${completed} concluído(s) de ${state.jobs.length}` : 'Nenhuma execução ainda'}</span></CardTitle></CardHeader>
+    <CardHeader className="pb-3"><CardTitle className="result-heading"><div>Execuções e resultados</div><span>{state.jobs.length ? `${completed} concluído(s) de ${state.jobs.length}` : 'Nenhuma execução ainda'}</span></CardTitle></CardHeader>
     <CardContent>
       {!state.jobs.length ? <div className="result-empty"><Inbox strokeWidth={1.2} /><span>Os resultados e as mensagens aparecerão aqui.</span></div>
         : state.jobs.map(job => {

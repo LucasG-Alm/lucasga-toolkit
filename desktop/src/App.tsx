@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpen, Box, Ruler, ChevronRight, CircleCheck, FileCheck2, Grid2X2, Layers3, MapPinned, Search, Settings2, TerminalSquare, Wrench } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { ToolForm } from './components/ToolForm';
 import { Results } from './components/Results';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ManualInput } from './components/ManualInput';
-import { ThemeSwitch } from './components/ThemeSwitch';
+
 import { LocationPanel } from './components/LocationPanel';
 import { FerrosPagina } from './components/FerrosPagina';
 import type { Check, InputFile, QueueState, Tool, Values, Inspection } from '../shared/contracts';
@@ -18,9 +18,11 @@ const initialQueue: QueueState = { status: 'idle', stopRequested: false, jobs: [
 
 export default function App() {
   const api = window.toolkit;
+  const mainRef = useRef<HTMLElement>(null);
   const [tools, setTools] = useState<Tool[]>([]);
-  const [toolId, setToolId] = useState('ortografia');
+  const [toolId, setToolId] = useState('localizacao');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  useEffect(() => { if (mainRef.current) mainRef.current.scrollTop = 0; }, [toolId, settingsOpen]);
   const [search, setSearch] = useState('');
   const [files, setFiles] = useState<InputFile[]>([]);
   const [paths, setPaths] = useState<string[]>([]);
@@ -95,27 +97,27 @@ export default function App() {
       if (picked[0]) setOptions({ ...options, output: tool.newOutput || ['galeria', 'modelos3d'].includes(tool.id) ? `${picked[0]}/${tool.id}-${new Date().toISOString().replace(/[:.]/g, '-')}` : picked[0] });
     } catch (value) { onError(value); }
   }
-  if (!api) return <main className="main"><h1>LucasGA Toolkit</h1><p className="error">Abra o aplicativo Electron para acessar arquivos locais e executar automações. Na pasta desktop, use npm run dev ou abra a versão portátil.</p></main>;
+  if (!api) return <main ref={mainRef} className="main"><h1>LucasGA Toolkit</h1><p className="error">Abra o aplicativo Electron para acessar arquivos locais e executar automações. Na pasta desktop, use npm run dev ou abra a versão portátil.</p></main>;
   const filtered = tools.filter(item => `${item.name} ${item.description} ${item.category}`.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')));
   return <div className="shell" onDragOver={event => event.preventDefault()} onDrop={event => event.preventDefault()}>
     <aside className="sidebar">
       <div className="brand"><span className="brand-icon"><Wrench size={21} strokeWidth={1.5} /></span><div><strong>LucasGA</strong><small>TOOLKIT</small></div></div>
       <div className="search"><Search /><Input aria-label="Buscar automação" placeholder="Buscar automação…" value={search} onChange={event => setSearch(event.target.value)} /></div>
       <nav className="catalog" aria-label="Automações">
-        {[...new Set(filtered.map(item => item.category))].map(category => <div key={category}><p className="category">{category}</p>
+        {[...new Set(filtered.map(item => item.category))].map(category => <div key={category}><p className="category"><span>{String(['Coordenadas e Mapa','CAD','Documentação','Drenagem'].indexOf(category)+1).padStart(2,'0')}</span> {category}</p>
           {filtered.filter(item => item.category === category).map(item => {
             const Icon = icons[item.id] || Wrench;
-            return <button className="tool-link" key={item.id} data-active={!settingsOpen && item.id === toolId} onClick={() => chooseTool(item)}><Icon /><span>{item.name}</span>{item.id === toolId && !settingsOpen && <ChevronRight className="arrow" />}</button>;
+            return <button className="tool-link" aria-current={!settingsOpen && item.id === toolId ? "page" : undefined} key={item.id} data-active={!settingsOpen && item.id === toolId} onClick={() => chooseTool(item)}><Icon /><span>{item.name}</span>{item.id === toolId && !settingsOpen && <ChevronRight className="arrow" />}</button>;
           })}</div>)}
         {!filtered.length && <p className="empty-files">Nenhuma automação encontrada.</p>}
       </nav>
-      <div className="sidebar-footer"><ThemeSwitch /><button className="tool-link" data-active={settingsOpen} onClick={() => { setSettingsOpen(true); setError(''); }}><Settings2 />Configurações</button><div className="local-tag"><i />Executado no seu computador</div></div>
+      <div className="sidebar-footer"><button className="tool-link" data-active={settingsOpen} onClick={() => { setSettingsOpen(true); setError(''); }}><Settings2 />Configurações</button><div className="local-tag"><i />Executado no seu computador</div></div>
     </aside>
-    <main className={`main ${!settingsOpen && toolId === 'localizacao' ? 'main-location' : ''}`}>
+    <main ref={mainRef} className={`main ${!settingsOpen && toolId === 'localizacao' ? 'main-location' : ''}`}>
       <div className="topline">Toolkit<ChevronRight />{settingsOpen ? 'Configurações' : tool?.category}<ChevronRight />{settingsOpen ? 'Ambiente' : tool?.name}</div>
       <div className="page-head"><div><h1>{settingsOpen ? 'Configurações' : tool?.name || 'Carregando…'}</h1><p className="page-description">{settingsOpen ? 'Confira o ambiente que executa suas automações.' : tool?.description}</p></div>
-        {!settingsOpen && toolId === 'localizacao' && <Button variant="outline" size="sm" onClick={()=>{setSettingsOpen(true);setError('');}}>API key Google</Button>}
-        {!settingsOpen && tool && toolId !== 'localizacao' && <Badge variant="outline" className="text-[10px] gap-1.5 py-1 text-muted-foreground font-normal shrink-0"><CircleCheck size={11} />{tool.id === 'ferros' ? 'AutoCAD aberto' : tool.manual ? 'Dentro do AutoCAD' : 'Execução local'}</Badge>}
+        {!settingsOpen && toolId === 'localizacao' && <Button variant="outline" size="sm" onClick={()=>{setSettingsOpen(true);setError('');}}>Configurar Google</Button>}
+        {!settingsOpen && tool && toolId !== 'localizacao' && <Badge variant="outline" className="text-[10px] gap-1.5 py-1 text-muted-foreground font-normal shrink-0"><CircleCheck size={11} />{tool.id === 'ferros' ? 'Requer AutoCAD aberto' : tool.manual ? 'Dentro do AutoCAD' : 'Execução local'}</Badge>}
       </div>
       {error && <div className="error" role="alert">{error}</div>}
       <div hidden={settingsOpen || toolId !== 'localizacao'}><LocationPanel api={api} queue={queue} onError={onError} active={toolId === 'localizacao' && !settingsOpen} /></div>

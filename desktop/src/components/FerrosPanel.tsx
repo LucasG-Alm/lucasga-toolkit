@@ -1,5 +1,6 @@
+import {FerrosSection, FerrosEmpty, FerrosAction} from './FerrosUI';
 import { useEffect, useMemo, useState } from 'react';
-import { LocateFixed } from 'lucide-react';
+import { LocateFixed, Crosshair, Plus, X } from 'lucide-react';
 import { Button } from './ui/button';
 import type { FerrosDesenho, FerrosGrade, FerrosLinha, FerrosProgresso, FerrosResposta, FerrosResumoAco, ToolkitAPI } from '../../shared/contracts';
 import { useTabela, type Coluna } from './tabela/Tabela';
@@ -211,17 +212,19 @@ export function FerrosPanel({ api, onError, chegada }: { api: ToolkitAPI; onErro
   }
   const zoom = (x: number, y: number) => void api.ferros({ acao: 'zoom', x, y }).catch(onError);
 
-  return <section className="ferros-panel">
+  return <section className="ferros-panel"><FerrosSection step={1} title="Ler seleção do AutoCAD" className="ferros-read">
     <div className="ferros-barra">
-      <Button onClick={() => void ler('nova')} disabled={lendo}>Nova seleção (limpa)</Button>
-      <Button variant="outline" onClick={() => void ler('adicionar')} disabled={lendo || !grade}>Adicionar seleção</Button>
-      <Button variant="outline" onClick={() => void ler('remover')} disabled={lendo || !grade}>Remover selecionados (AutoCAD)</Button>
-      <input aria-label="Elemento da seleção" className="ferros-campo w-40" placeholder="Elemento da seleção" value={elementoSelecao} onChange={e => setElementoSelecao(e.target.value)} />
-      <span className="ferros-desenho">{desenho ? `AutoCAD: ${desenho.nome}${desenho.caminho ? '' : ' (nunca salvo)'}` : 'Selecione os textos no AutoCAD (ou leia e selecione lá).'}</span>
+      <FerrosAction label="Ler seleção do AutoCAD" text="Nova seleção" icon={<Crosshair/>} onClick={() => void ler('nova')} disabled={lendo}/>
+      <FerrosAction label="Adicionar seleção" text="Adicionar à lista" icon={<Plus/>} variant="outline" onClick={() => void ler('adicionar')} disabled={lendo || !grade}/>
+      <FerrosAction label="Remover selecionados (AutoCAD)" text="Tirar da lista" icon={<X/>} variant="outline" onClick={() => void ler('remover')} disabled={lendo || !grade}/>
+      <input aria-label="Elemento da seleção" className="ferros-campo w-40" placeholder="Elemento da seleção (opcional), ex.: ADUELA" value={elementoSelecao} onChange={e => setElementoSelecao(e.target.value)} />
+      <span className="ferros-desenho">{desenho ? `AutoCAD: ${desenho.nome}${desenho.caminho ? '' : ' (nunca salvo)'}` : 'Nenhum desenho lido'}</span>
     </div>
+    <p className="ferros-help">No AutoCAD, selecione os textos das tags e tecle Enter. A nova seleção substitui a lista; adicionar soma à lista atual.</p></FerrosSection>
     {avisos.map((a, i) => <div className="warnings" key={i}>{a}</div>)}
     {lendo && <Progresso dado={progresso} />}
-    {grade && !lendo && <>
+    {!grade && !lendo && <FerrosEmpty/>}
+    {grade && !lendo && <><FerrosSection step={2} title="Revisar tags"><div className="ferros-table-scroll">
       <table className="ferros-tabela">
         <thead><tr><th></th>{tGrade.cabecalho}<th></th></tr></thead>
         <tbody>{tGrade.visiveis.map((l, i) => <tr key={l.handle} data-difere={l.difere} data-arrastando={arrastando === l.handle}
@@ -241,7 +244,7 @@ export function FerrosPanel({ api, onError, chegada }: { api: ToolkitAPI; onErro
           })}
           <td><button className="ferros-zoom" aria-label={`Zoom em ${l.handle}`} onClick={() => zoom(l.x, l.y)}><LocateFixed size={14} /></button></td>
         </tr>)}</tbody>
-      </table>
+      </table></div>
       {!grade.linhas.length && <p className="helper">Nenhuma tag de ferro na seleção.</p>}
       <div className="ferros-lote">
         <input aria-label="Elemento para as marcadas" className="ferros-campo w-40" placeholder="Elemento (ex.: ADUELA)" value={elementoLote} onChange={e => setElementoLote(e.target.value)} />
@@ -249,16 +252,17 @@ export function FerrosPanel({ api, onError, chegada }: { api: ToolkitAPI; onErro
         <Button size="sm" variant="ghost" disabled={!marcadas.size} onClick={removerMarcadas}>Remover marcadas</Button>
       </div>
 
+      </FerrosSection>
       {calculando && <p className="helper">Calculando…</p>}
       {calculo.bloqueado && <div className="error" role="status">{calculo.bloqueado}</div>}
-      {calculo.lista && <div className="ferros-resultado">
+      {calculo.lista && <FerrosSection step={3} title="Resultado"><div className="ferros-resultado">
         <table className="ferros-tabela"><caption>LISTA DE FERROS</caption>
           <thead><tr>{tLista.cabecalho}<th></th></tr></thead>
           <tbody>{tLista.visiveis.map(i => <tr key={i.posicao}><td>{i.posicao}</td><td className="num"><span>{i.bitola}</span></td><td className="num"><span>{i.quantidade}</span></td>
             <td className="num"><span>{i.comprimento_unit_cm}</span></td><td className="num"><span>{i.comprimento_total_cm}</span></td><td><small className="ferros-difere">{i.avisos.join('; ')}</small></td></tr>)}</tbody>
         </table>
         <div className="ferros-resumos">{resumos.map(b => <TabelaResumo key={b.aco} bloco={b} onPeso={mudarPeso} />)}</div>
-      </div>}
+      </div></FerrosSection>}
       <details className="ferros-config"><summary>Configurações da página</summary>
         <label className="ferros-lote">Bitolas CA-60
           <Campo key={bitolas(calculo.ca60)} label="Bitolas CA-60" valor={bitolas(calculo.ca60)} onSalvar={mudarCa60} largura="w-40" /></label>

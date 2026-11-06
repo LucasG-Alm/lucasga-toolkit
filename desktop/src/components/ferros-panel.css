@@ -1,3 +1,4 @@
+@import "./ferros-model-fonts.css";
 .ferros-panel { display: flex; flex-direction: column; gap: 12px; }
 .ferros-barra, .ferros-lote { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .ferros-desenho { font-size: 13px; color: var(--muted-foreground, #666); }
@@ -28,3 +29,111 @@
 .ferros-abas { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border, #ddd); margin-bottom: 0.75rem; }
 .ferros-aba { padding: 0.4rem 1rem; border: 0; border-bottom: 2px solid transparent; background: none; font-weight: 600; cursor: pointer; opacity: 0.6; }
 .ferros-aba[aria-selected="true"] { border-bottom-color: currentColor; opacity: 1; }
+
+/* Ferros: tokens extraídos do HTML 2, limitados a esta tela. */
+.ferros-screen {
+  --ferros-gap: 20px;
+  --ferros-padding-y: 18px;
+  --ferros-padding-x: 20px;
+  --ferros-radius: 8px;
+  --ferros-control-height: 36px;
+  --ferros-control-radius: 6px;
+  --ferros-font-size: 13px;
+  --ferros-panel: var(--card);
+  --ferros-input: var(--background);
+  --ferros-outline: var(--border);
+  --ferros-subtle: var(--muted-foreground);
+  --ferros-accent: var(--primary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ferros-gap);
+  min-width: 0;
+}
+.ferros-screen .ferros-abas { display: inline-grid; grid-template-columns: 1fr 1fr; align-self: flex-start; padding: 3px; gap: 2px; background: var(--ferros-panel); border: 1px solid var(--ferros-outline); border-radius: var(--ferros-radius); margin: 0; }
+.ferros-screen .ferros-aba { height: var(--ferros-control-height); padding: 0 22px; border: 0; border-radius: var(--ferros-control-radius); font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 1; color: var(--ferros-subtle); }
+.ferros-screen .ferros-aba small { font-size: 12px; font-weight: 400; }
+.ferros-screen .ferros-aba[aria-selected=true] { background: var(--ferros-accent); color: var(--primary-foreground); }
+.ferros-screen .ferros-panel { padding: 0; border: 0; background: transparent; border-radius: 0; overflow: visible; gap: var(--ferros-gap); min-width: 0; }
+.ferros-section { padding: var(--ferros-padding-y) var(--ferros-padding-x); border-radius: var(--ferros-radius); display: flex; flex-direction: column; gap: 14px; min-width: 0; background: var(--ferros-panel); border-color: var(--ferros-outline); }
+.ferros-section-title { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
+.ferros-section-title>span { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--ferros-accent); color: var(--ferros-accent); border-radius: var(--ferros-control-radius); font: 600 12px Consolas,monospace; }
+.ferros-screen .ferros-barra { gap: 8px; }
+.ferros-screen .ferros-barra input { flex: 1 1 220px; }
+.ferros-screen .ferros-desenho { flex-basis: 100%; font-size: 12.5px; }
+.ferros-screen .ferros-campo { height: var(--ferros-control-height); padding: 0 10px; border-radius: var(--ferros-control-radius); background: var(--ferros-input); border-color: var(--ferros-outline); font-size: 13.5px; max-width: 100%; }
+.ferros-screen .ferros-campo:focus-visible { outline: 2px solid var(--ferros-accent); outline-offset: 2px; }
+.ferros-screen .ferros-campo[data-falta=true] { border-color: var(--negative); }
+.ferros-help,.ferros-tag-preview p { color: var(--ferros-subtle); font-size: 12.5px; line-height: 1.6; }
+.ferros-empty-state { border: 1.5px dashed var(--ferros-outline); border-radius: var(--ferros-radius); padding: 36px 20px; background: var(--ferros-panel); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.ferros-empty-state p { font-size: 12.5px; color: var(--ferros-subtle); max-width: 420px; line-height: 1.6; }
+.ferros-empty-symbol { width: 44px; height: 44px; display: grid; place-items: center; font-size: 28px; border: 1px solid var(--ferros-accent); color: var(--ferros-accent); border-radius: var(--ferros-radius); }
+.ferros-table-scroll { overflow-x: auto; min-width: 0; }
+.ferros-screen .ferros-tabela th { background: var(--surface); color: var(--ferros-subtle); font-size: 12px; }
+.ferros-screen .ferros-tabela td,.ferros-screen .ferros-tabela th { padding: 8px; }
+.ferros-screen .ferros-tabela { font-size: var(--ferros-font-size); }
+.ferros-screen .ferros-difere { color: var(--warning-foreground); }
+.ferros-screen .ferros-cotar-layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(260px,.55fr); align-items: start; }
+.ferros-cotar-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.ferros-cotar-fields label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; min-width: 0; }
+.ferros-cotar-fields .ferros-campo { width: 100%; }
+.ferros-tag-preview { display: flex; flex-direction: column; gap: 6px; }
+.ferros-tag-preview small { font: 11px Consolas,monospace; letter-spacing: .12em; color: var(--ferros-subtle); }
+.ferros-tag-preview output { padding: 12px 14px; background: var(--surface); border: 1px solid var(--ferros-outline); border-radius: var(--ferros-control-radius); font: 600 15px Consolas,monospace; }
+.ferros-screen .ferros-cotar-action { height: 44px; font-size: 14px; font-weight: 700; }
+.ferros-cotar-guide { font-size: 13px; line-height: 1.7; color: var(--ferros-subtle); }
+.ferros-cotar-guide ol { list-style: decimal; padding-left: 20px; }
+.ferros-cotar-guide li { padding: 5px 0; }
+.ferros-cotar-layout>.ferros-lote,.ferros-cotar-layout>.ferros-tabela,.ferros-cotar-layout>.warnings,.ferros-cotar-layout>.ferros-progresso { grid-column: 1/-1; }
+@media(max-width:1100px) { .ferros-screen .ferros-cotar-layout { grid-template-columns: minmax(0,1fr); } }
+@media(max-width:650px) { .ferros-cotar-fields { grid-template-columns: minmax(0,1fr); } .ferros-screen .ferros-aba { padding: 0 12px; } .ferros-screen { --ferros-padding-x: 14px; } }
+/* Revisão R2: controles compactos e ajuda abaixo do formulário. */
+.ferros-screen { container-type: inline-size; }
+.ferros-screen .ferros-cotar-layout { grid-template-columns: minmax(0,1fr); position: relative; }
+.ferros-cotar-fields { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+.ferros-cotar-form { gap: 12px; }
+.ferros-screen .ferros-cotar-fields input,.ferros-screen .ferros-cotar-fields select { width: 100%; min-width: 0; }
+.ferros-config-visible { margin: 0; padding: 12px 0 0; border-top: 1px solid var(--ferros-outline); }
+.ferros-config-visible legend { padding: 0 0 8px; font-size: 12.5px; color: var(--ferros-subtle); }
+.ferros-config-visible .ferros-lote { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.ferros-screen .ferros-config-visible input { width: 100%; min-width: 0; }
+.ferros-length-option { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.ferros-length-option input { accent-color: var(--ferros-accent); }
+.ferros-cotar-guide { grid-column: 1/-1; }
+.ferros-cotar-guide ol { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px 30px; }
+.ferros-help-shortcut { position: absolute; top: 15px; right: 18px; color: var(--ferros-subtle); padding: 5px; border-radius: 50%; }
+.ferros-help-shortcut svg { width: 19px; height: 19px; }
+.ferros-read { position: relative; }
+.ferros-screen .ferros-read .ferros-desenho { position: absolute; top: 18px; right: 20px; flex-basis: auto; border: 1px solid var(--ferros-outline); border-radius: 999px; padding: 4px 10px; font: 11px Consolas,monospace; max-width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ferros-screen .ferros-read .ferros-section-title { padding-right: 40%; }
+.ferros-screen .ferros-barra .ferros-action { height: var(--ferros-control-height); gap: 6px; padding: 0 12px; font-size: 13px; }
+.ferros-screen .ferros-action svg { width: 15px; height: 15px; flex-shrink: 0; }
+.ferros-screen .ferros-barra input { min-width: 160px; }
+@container(max-width:850px) { .ferros-screen .ferros-action span { display: none; } .ferros-screen .ferros-barra .ferros-action { width: 36px; padding: 0; } }
+@container(max-width:600px) { .ferros-cotar-fields { grid-template-columns: repeat(2,minmax(0,1fr)); } .ferros-cotar-guide ol { grid-template-columns: 1fr; } .ferros-screen .ferros-read .ferros-desenho { position: static; max-width: 100%; } .ferros-screen .ferros-read .ferros-section-title { padding-right: 0; } }
+/* Medidas e composição do modelo LucasGA Toolkit (2).html. */
+.ferros-screen { font-family: 'IBM Plex Sans',sans-serif; --ferros-gap:20px; --ferros-padding-y:18px; --ferros-padding-x:20px; --ferros-radius:8px; }
+.ferros-screen .ferros-cotar-layout { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr)); gap:20px; align-items:start; }
+.ferros-screen .ferros-cotar-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.ferros-screen .ferros-cotar-fields input { font:500 13.5px 'IBM Plex Mono',monospace; }
+.ferros-screen .ferros-cotar-form { gap:14px; }
+.ferros-screen .ferros-bitola { display:flex; flex-direction:column; gap:6px; font-size:12.5px; font-weight:600; }
+.ferros-bitola>div { display:flex; gap:6px; flex-wrap:wrap; }
+.ferros-bitola button { min-width:48px; height:34px; padding:0 10px; border:1px solid var(--border); border-radius:6px; font:600 13px 'IBM Plex Mono',monospace; color:var(--muted-foreground); cursor:pointer; }
+.ferros-bitola button[aria-pressed=true] { border-color:var(--primary); background:var(--primary); color:var(--primary-foreground); }
+.ferros-screen .ferros-config { padding:0; }
+.ferros-screen .ferros-config summary { display:flex; gap:6px; color:var(--muted-foreground); font-size:13px; font-weight:600; padding:0; }
+.ferros-config summary::before { content:'›'; } .ferros-config[open] summary::before { transform:rotate(90deg); }
+.ferros-config summary>span { font:12px 'IBM Plex Mono',monospace; }
+.ferros-screen .ferros-config .ferros-lote { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; padding-top:12px; }
+.ferros-screen .ferros-config input { width:100%; min-width:0; }
+.ferros-screen .ferros-tag-preview output { font:600 15px 'IBM Plex Mono',monospace; }
+.ferros-screen .ferros-lotes-card { min-width:0; }
+.ferros-lotes-empty { padding:28px 12px; text-align:center; font-size:13px; color:var(--muted-foreground); }
+.ferros-screen .ferros-cotar-layout>.ferros-lotes-card { grid-column:auto; }
+.ferros-screen .ferros-read .ferros-section-title { padding-right:0; }
+.ferros-screen .ferros-read .ferros-desenho { font:500 12px 'IBM Plex Mono',monospace; }
+.ferros-screen .ferros-read .ferros-barra { flex-wrap:nowrap; }
+.ferros-screen .ferros-read .ferros-barra input { flex:1 1 220px; width:auto; min-width:0; }
+.ferros-screen .ferros-read .ferros-barra .ferros-action { width:auto; padding:0 14px; }
+.ferros-screen .ferros-action span { display:inline; }
+@container(max-width:700px){.ferros-screen .ferros-read .ferros-barra{flex-wrap:wrap}.ferros-screen .ferros-read .ferros-barra input{flex-basis:100%}.ferros-screen .ferros-read .ferros-desenho{position:static;max-width:100%}}

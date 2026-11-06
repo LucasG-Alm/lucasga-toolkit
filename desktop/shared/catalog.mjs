@@ -86,7 +86,8 @@ export const tools = [
     instructions: 'No AutoCAD, use APPLOAD para carregar ferramentas/lisp/MALHA.lsp. Execute MALHA, indique os dois cantos e informe o espaçamento. A seleção dos cantos acontece no desenho.' },
 ];
 
-export const visibleTools = tools.filter(tool => !tool.hidden);
+const desktopOrder = ['localizacao', 'cad-kmz', 'dividir', 'limpar', 'ferros', 'ortografia', 'aprender', 'galeria', 'drenagem'];
+export const visibleTools = tools.filter(tool => desktopOrder.includes(tool.id) && !tool.hidden).sort((a,b) => desktopOrder.indexOf(a.id) - desktopOrder.indexOf(b.id)).map(tool => ({...tool, name: tool.id === 'ferros' ? 'Ferros' : tool.name, category: tool.id === 'ferros' ? 'CAD' : ['localizacao','cad-kmz'].includes(tool.id) ? 'Coordenadas e Mapa' : tool.category}));
 export function usesGoogle(tool, options = {}) {
   if (tool.id === 'localizacao') return options.lookupAddress === true || options.lookupElevation === true || options.mode === 'address';
   return Boolean(tool.google && !(tool.id === 'drenagem' && options.elevationSource === 'arquivo'));

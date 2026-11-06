@@ -1,4 +1,6 @@
 export const themes = [
+  { id:'blueprint', name:'Blueprint', base:'#142F50', primary:'#2785E2', highlight:'#C2C4C4', support:'#C2C4C4', background:'#05111F', sidebar:'#081727', card:'#0C1B2E', surface:'#14233A', border:'#22344C', text:'#ECEFF3', muted:'#A4AEBD' },
+  { id:'prancha', name:'Prancha (claro)', base:'#DCE9F6', primary:'#155BA0', highlight:'#3E5C7E', support:'#3E5C7E', background:'#F3F5F8', sidebar:'#E9EDF2', card:'#FFFFFF', surface:'#EEF2F6', border:'#D5D8DD', text:'#0C1B2E', muted:'#57606B' },
   { id: 'sistemico', name: 'Sistêmico', base: '#0F172A', primary: '#3B82F6', highlight: '#06B6D4', support: '#E2E8F0', background: '#0F172A', sidebar: '#111C30', card: '#172238', surface: '#1E2C43', border: '#33435B', text: '#E2E8F0', muted: '#B8C1CC' },
   { id: 'criativo', name: 'Criativo', base: '#7C2D12', primary: '#F97316', highlight: '#FACC15', support: '#1F2937', background: '#181A1F', sidebar: '#14161B', card: '#22252C', surface: '#1F2937', border: '#3B414D', text: '#F3F4F6', muted: '#B8C1CC' },
   { id: 'iterativo', name: 'Iterativo', base: '#4C1D95', primary: '#8B5CF6', highlight: '#EC4899', support: '#E2E8F0', background: '#120D1C', sidebar: '#181021', card: '#22182F', surface: '#2D203E', border: '#453154', text: '#E2E8F0', muted: '#B8C1CC' },
@@ -61,6 +63,7 @@ export function themeTokens(id: string, preview?: ThemeColors): Record<string, s
   const theme = preview ?? getThemeColors(validId);
   const { background, card, surface, text: foreground } = theme;
   const supportSurface = luminance(theme.support) < 0.2 ? theme.support : surface;
+  const light = luminance(background) > 0.4;
   return {
     '--background': background, '--foreground': foreground, '--card': card, '--sidebar': theme.sidebar,
     '--primary': theme.primary, '--primary-foreground': readable(theme.primary), '--highlight': theme.highlight,
@@ -71,9 +74,9 @@ export function themeTokens(id: string, preview?: ThemeColors): Record<string, s
     '--border': theme.border, '--input': theme.border, '--ring': theme.highlight,
     '--selection': theme.base, '--selection-foreground': readable(theme.base),
     '--drop-background': background, '--drop-border': theme.border,
-    '--icon': theme.highlight, '--positive': '#6ee7b7', '--negative': '#fca5a5', '--info': '#7dd3fc',
-    '--error-background': mix(background, '#ef4444', 0.15), '--error-border': mix(background, '#ef4444', 0.4), '--error-foreground': '#fecaca',
-    '--warning-background': mix(background, '#f59e0b', 0.12), '--warning-foreground': '#fde68a', '--destructive': '#b33333',
+    '--icon': theme.highlight, '--positive': light ? '#1E7F4F' : '#6ee7b7', '--negative': light ? '#C4343A' : '#fca5a5', '--info': light ? '#155BA0' : '#7dd3fc',
+    '--error-background': mix(background, '#ef4444', 0.15), '--error-border': mix(background, '#ef4444', 0.4), '--error-foreground': light ? '#A11D26' : '#fecaca',
+    '--warning-background': mix(background, '#f59e0b', 0.12), '--warning-foreground': light ? '#825100' : '#fde68a', '--destructive': '#b33333',
     '--theme-base': theme.base, '--theme-support': theme.support,
     '--support-surface': supportSurface, '--support-foreground': luminance(theme.support) >= 0.2 ? theme.support : readable(supportSurface),
   };
@@ -84,7 +87,7 @@ export function readThemeId(): ThemeId {
     if (themes.some(item => item.id === value)) return value as ThemeId;
     if (value === 'ambicioso') return 'criativo';
   } catch { /* persistence can be unavailable; the app remains usable */ }
-  return 'sistemico';
+  return 'blueprint';
 }
 export function activeThemeId(): ThemeId {
   return themes.find(item => item.id === document.documentElement.dataset.theme)?.id ?? readThemeId();
@@ -92,7 +95,7 @@ export function activeThemeId(): ThemeId {
 export function applyTheme(id: ThemeId, persist = false, preview?: ThemeColors) {
   const root = document.documentElement;
   root.dataset.theme = id;
-  root.style.colorScheme = 'only dark';
+  root.style.colorScheme = id === 'prancha' ? 'light' : 'dark';
   for (const [key, value] of Object.entries(themeTokens(id, preview))) root.style.setProperty(key, value);
   if (persist) try { localStorage.setItem(storageKey, id); } catch { /* session-only selection */ }
   window.dispatchEvent(new CustomEvent(themeEvent, { detail: { id, persisted: persist } }));

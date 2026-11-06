@@ -43,11 +43,11 @@ export function FileInputs({ api, extensions, files, selected, recursive, disabl
           <Button variant="ghost" size="sm" disabled={disabled} onClick={() => void pick('folder')}><FolderOpen />Selecionar pasta</Button>
         </div>
       </div>
-      <div className="path-row">
+      <details className="input-path"><summary>Colar caminho</summary><div className="path-row">
         <Input aria-label="Caminho de arquivo ou pasta" placeholder="Ou cole o caminho do arquivo ou da pasta" value={path} disabled={disabled}
           onChange={event => setPath(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') void addPath(); }} />
         <Button variant="outline" size="icon" aria-label="Adicionar caminho" disabled={disabled || !path.trim()} onClick={() => void addPath()}><ArrowRight size={16} /></Button>
-      </div>
+      </div></details>
       <label className="check-row"><Checkbox checked={recursive} disabled={disabled} onCheckedChange={value => onRecursive(value === true)} />Incluir subpastas</label>
       <div className="file-header"><span>{compatible.length} arquivo(s) compatível(is)</span>
         <Button size="sm" variant="ghost" className="h-6 text-[10px]" disabled={disabled || !compatible.length}

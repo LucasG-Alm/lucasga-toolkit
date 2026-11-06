@@ -16,22 +16,14 @@ export function ToolForm({ tool, values, count, busy, launching, onChange, onPic
   const outputOption = tool.newOutput || ['dividir', 'limpar', 'galeria', 'modelos3d'].includes(tool.id);
   const google = usesGoogle(tool, values);
   const allowed = !tool.single || count === 1;
+  const missing = !count ? 'Selecione um arquivo para começar.' : !allowed ? 'Selecione um único arquivo.' : tool.inspect && !inspectionReady ? 'Inspecione a entrada para continuar.' : tool.fields?.some(field => field.key === 'crsConfirmed') && values.crsConfirmed !== true ? 'Confirme o sistema de coordenadas do desenho.' : google && !values.googleAcknowledged ? 'Confira a previsão de consultas Google.' : busy || launching ? 'Execução em andamento.' : '';
   const parsed = (key: string): string[] => { try { return JSON.parse(String(values[key] || '[]')); } catch { return []; } };
   function toggle(key: string, id: string, checked: boolean) {
     const selected = new Set(parsed(key));
     if (checked) selected.add(id); else selected.delete(id);
     onChange({ ...values, [key]: JSON.stringify([...selected]) });
   }
-  return <Card className="panel">
-    <CardHeader className="pb-4"><CardTitle><span className="step">2</span>Configurar execução</CardTitle></CardHeader>
-    <CardContent>
-      {tool.inspect && <div className="inspection">
-        <Button variant="outline" size="sm" disabled={busy || !count || inspecting || !allowed} onClick={onInspect}>{inspecting ? <LoaderCircle className="spin" /> : <Info />}{inspecting ? 'Inspecionando…' : 'Inspecionar entrada'}</Button>
-        {inspectionReady && <p className="helper mt-2">{inspection?.rows !== undefined ? `${inspection.rows} linha(s) · ` : ''}{google ? `Até ${inspection?.requests ?? 0} consulta(s) Google prevista(s).` : 'Inspeção concluída. Sem consultas Google.'}</p>}
-        {inspection?.note && <p className="helper mt-2">{inspection.note}</p>}
-        {tool.single && <p className="helper mt-2">Selecione um arquivo por estudo para conferir os elementos.</p>}
-      </div>}
-      {tool.fields?.map(field => field.type === 'checkbox'
+  const renderField = (field: NonNullable<Tool['fields']>[number]) => field.type === 'checkbox'
         ? <label key={field.key} className="check-row mb-4"><Checkbox checked={values[field.key] === true} disabled={busy}
           onCheckedChange={checked => onChange({ ...values, [field.key]: checked === true })} />{field.label}</label>
         : ['layers', 'structures'].includes(field.type)
@@ -54,7 +46,18 @@ export function ToolForm({ tool, values, count, busy, launching, onChange, onPic
           <Input id={field.key} type={field.type === 'column' ? 'text' : field.type} step={field.type === 'number' ? 'any' : undefined} disabled={busy}
             value={String(values[field.key] ?? '')} onChange={event => onChange({ ...values, [field.key]: event.target.value })} />
           {field.help && <small>{field.help}</small>}
-        </div>)}
+        </div>;
+  return <Card className="panel">
+    <CardHeader className="pb-4"><CardTitle><span className="step">2</span>Configurar execução</CardTitle></CardHeader>
+    <CardContent>
+      {tool.inspect && <div className="inspection">
+        <Button variant="outline" size="sm" disabled={busy || !count || inspecting || !allowed} onClick={onInspect}>{inspecting ? <LoaderCircle className="spin" /> : <Info />}{inspecting ? 'Inspecionando…' : 'Inspecionar entrada'}</Button>
+        {inspectionReady && <p className="helper mt-2">{inspection?.rows !== undefined ? `${inspection.rows} linha(s) · ` : ''}{google ? `Até ${inspection?.requests ?? 0} consulta(s) Google prevista(s).` : 'Inspeção concluída. Sem consultas Google.'}</p>}
+        {inspection?.note && <p className="helper mt-2">{inspection.note}</p>}
+        {tool.single && <p className="helper mt-2">Selecione um arquivo por estudo para conferir os elementos.</p>}
+      </div>}
+      {tool.fields?.filter(field => !['estilo','rot'].includes(field.key)).map(renderField)}
+{tool.fields?.some(field => ['estilo','rot'].includes(field.key)) && <details><summary>Aparência dos rótulos</summary>{tool.fields.filter(field => ['estilo','rot'].includes(field.key)).map(renderField)}</details>}
       {outputOption && <div className="field">
         <Label htmlFor="output">Destino dos resultados <span className="text-muted-foreground font-normal">(opcional)</span></Label>
         <div className="row"><Input id="output" value={String(values.output ?? '')} placeholder="Usar destino padrão" disabled={busy}
@@ -64,8 +67,9 @@ export function ToolForm({ tool, values, count, busy, launching, onChange, onPic
       </div>}
       {google && <label className="check-row mb-4"><Checkbox checked={values.googleAcknowledged === true} disabled={busy || !inspectionReady}
         onCheckedChange={value => onChange({ ...values, googleAcknowledged: value === true })} />Conferi a previsão de consultas Google</label>}
+      <section className="execution-readiness"><h3>Antes de executar</h3><p role="status">{missing || 'Tudo pronto para executar.'}</p></section>
       <div className="output-hint"><Info /><span>{tool.outputHint}</span></div>
-      <Button className="execute" disabled={busy || !count || launching || !allowed || Boolean(tool.inspect && !inspectionReady) || Boolean(google && !values.googleAcknowledged)} onClick={onExecute}>
+      <Button className="execute" disabled={Boolean(missing)} onClick={onExecute}>
         {launching ? <LoaderCircle className="spin" /> : <Play size={15} fill="currentColor" />}
         {launching ? 'Conferindo requisitos…' : `Executar ${count} arquivo${count === 1 ? '' : 's'}`}
       </Button>
