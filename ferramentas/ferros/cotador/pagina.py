@@ -194,7 +194,7 @@ def executar(pedido: dict) -> dict:
         return {"plotado": len(quadros), "avisos": r["avisos"]}
     if acao == "cotar":
         from cotador.config import ALTURA_TEXTO_NO_PAPEL
-        from cotador.cotar import anotacoes_do_lote, numerar
+        from cotador.cotar import anotacoes_do_lote, aviso_sem_marcador, numerar
 
         letra, _ = lote.letra_e_numero()
         lido = cad_aberto.ler_cotar(app, _avanco, letra)
@@ -206,7 +206,9 @@ def executar(pedido: dict) -> dict:
         leitura = numerar(polys, textos, ALTURA_TEXTO_NO_PAPEL * escala, lote)
         r = cad_aberto.cotar(app, anotacoes_do_lote({p.handle: p for p in polys}, leitura.grupos, lote, escala),
                              pedido.get("layer") or "TXT02", pedido.get("estilo") or "R80R")
-        return {"desenho": _desenho_json(info), "cotados": sum(len(g.handles) for g in leitura.grupos),
+        cotados = sum(len(g.handles) for g in leitura.grupos)
+        r["avisos"] += [a for a in [aviso_sem_marcador(lote, cotados)] if a]
+        return {"desenho": _desenho_json(info), "cotados": cotados,
                 "numeros": [f"{g.letra}{g.numero}" for g in leitura.grupos],
                 "ja_cotados": leitura.ja_cotados, "arrays": arrays, "avisos": r["avisos"],
                 "grade": grade_para_json(montar_grade(r["textos"]))}

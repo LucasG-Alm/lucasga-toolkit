@@ -132,10 +132,11 @@ Fluxo por lote, sem grade: você digita os campos, seleciona os ferros no AutoCA
 |----|-------|
 | R-FER-COT-001 | Formulário: Quant (texto livre: `2`, `2x2`, `XX`, `YY`…), N inicial (`N5`, `L1`, `T`, vazio), Ø (lista das bitolas da tabela de peso + vazio), c/ (texto livre). "Cotar seleção" pede a seleção no AutoCAD (ou usa a ativa) e lê as LWPOLYLINE de qualquer layer; polyline fechada ganha o vértice de volta ao início. |
 | R-FER-COT-002 | Numeração: ferros de mesma forma e comprimento recebem o mesmo número; formas diferentes, números seguidos na ordem de leitura (de cima para baixo, da esquerda para a direita). Letra = a digitada (padrão N). Número digitado manda: começa nele. N sem número: rótulo `<letra><i>` a até 10 alturas de texto do ferro dá o número; sem rótulo, começa em 1, pulando os números dos rótulos. |
-| R-FER-COT-003 | A tag leva só o que foi digitado: `[Quant]<letra><i> [%%C<Ø>] [c/<c/>] c=<cm>` — c= calculado sai sempre (ex.: `2x4N11 %%C12.5 c=391`, `XXN1 c/VAR c=280`). Nada bloqueia o Cotar. |
+| R-FER-COT-003 | A tag leva só o que foi digitado: `[Quant]<letra><i> [%%C<Ø>] [c/<c/>] [c=<cm>]` — c= calculado sai, salvo com "Incluir c=" desmarcado (R-FER-COT-010) (ex.: `2x4N11 %%C12.5 c=391`, `XXN1 c/VAR c=280`). Nada bloqueia o Cotar. |
 | R-FER-COT-004 | Ferro com tag completa a até 3 alturas de texto do trecho principal é "já cotado" e é pulado; a página diz quantos, com zoom. |
 | R-FER-COT-005 | Array blocks (`*U`) não são lidos; a página avisa quantos e oferece zoom em cada um. |
 | R-FER-COT-006 | Cada lote entra entre marcas de UNDO (um Ctrl+Z desfaz o lote). Layer inexistente é criada; estilo inexistente usa o atual e avisa. |
 | R-FER-COT-007 | Posição: a tag fica no trecho principal do lado oposto aos ganchos; ferro dobrado ganha a cota de cada trecho (regras do `anotacao.py`). |
 | R-FER-COT-008 | A página lista os lotes cotados nesta sessão (campos, números usados, quantos ferros) e "Contar o que acabei de cotar" acrescenta as tags novas na aba Contar (sem duplicar). |
 | R-FER-COT-009 | A página tem as abas Contar \| Cotar; trocar de aba não perde o que está em cada uma. |
+| R-FER-COT-010 | "Incluir c=" (marcado por padrão; pedido do Lucas em 06/11/2026): desmarcado, a tag sai sem o `c=`. Se a tag ficar sem nenhum marcador (sem Ø, c/ e c=, ex.: `2N1`), o Contar não a reconhece (R-FER-TAG-004): o Cotar avisa quantas saíram assim. |

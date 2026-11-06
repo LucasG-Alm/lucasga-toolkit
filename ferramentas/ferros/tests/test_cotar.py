@@ -66,11 +66,24 @@ def test_anotacoes_tag_no_principal_e_cota_por_trecho():
     assert textos == ["2N1 %%C8 c=102", "11", "91"]
 
 def test_comprimento_opcional_na_tag():
+    """R-FER-COT-010"""
     assert texto_da_tag(Lote(quant="2", incluir_comprimento=False), "N", 1, 280) == "2N1"
     assert texto_da_tag(Lote(), "N", 1, 280) == "N1 c=280"
 
 def test_pedido_preserva_opcao_de_comprimento():
+    """R-FER-COT-010"""
     from cotador.pagina import _lote
 
     assert _lote({}).incluir_comprimento is True
     assert _lote({"incluirComprimento": False}).incluir_comprimento is False
+
+
+def test_aviso_quando_a_tag_sai_sem_marcador():
+    """R-FER-COT-010: sem Ø, c/ e c= o Contar nao reconhece a tag."""
+    from cotador.cotar import aviso_sem_marcador
+
+    assert "3 tag" in aviso_sem_marcador(Lote(quant="2", incluir_comprimento=False), 3)
+    assert aviso_sem_marcador(Lote(quant="2", bitola=8.0, incluir_comprimento=False), 3) is None
+    assert aviso_sem_marcador(Lote(espacamento="VAR", incluir_comprimento=False), 3) is None
+    assert aviso_sem_marcador(Lote(), 3) is None
+    assert aviso_sem_marcador(Lote(incluir_comprimento=False), 0) is None

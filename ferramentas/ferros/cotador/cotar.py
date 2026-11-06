@@ -137,6 +137,14 @@ def texto_da_tag(lote: Lote, letra: str, numero: int, comprimento_cm: int) -> st
     return f"{lote.quant.strip()}{letra}{numero}{bitola}{esp}{comprimento}"
 
 
+def aviso_sem_marcador(lote: Lote, cotados: int) -> str | None:
+    """R-FER-COT-010: tag sem Ø, c/ e c= nao e reconhecida pelo Contar (R-FER-TAG-004)."""
+    if not cotados or lote.incluir_comprimento or lote.bitola or lote.espacamento.strip():
+        return None
+    return (f"{cotados} tag(s) saíram sem Ø, c/ nem c=: a aba Contar não reconhece essas tags. "
+            "Preencha Ø ou c/, ou marque \"Incluir c=\".")
+
+
 def anotacoes_do_lote(polys: dict[str, PolyLida], grupos: list[GrupoCotar], lote: Lote, escala: float) -> list[Anotacao]:
     """R-FER-COT-007: tag no trecho principal e cota de cada trecho."""
     cfg = Config.na_escala(escala)
