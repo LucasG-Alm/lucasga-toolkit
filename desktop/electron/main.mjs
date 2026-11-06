@@ -6,7 +6,7 @@ import path from 'node:path';
 import { tools, visibleTools, usesGoogle } from '../shared/catalog.mjs';
 import { scanInputs } from './inputs.mjs';
 import { ExecutionQueue } from './queue.mjs';
-import { readSettings, saveSettings, resolveRuntime } from './settings.mjs';
+import { readSettings, saveSettings, resolveRuntime as resolverRuntime } from './settings.mjs';
 import { prepareJobs, runBridge, selectedSecrets, redact, batchRuntimeOptions } from './runner.mjs';
 import { MapService } from './maps.mjs';
 import { LocationService, locationURL, validateExportRequest, resolveLocationRuntime, exportPointsWithDialog } from './location.mjs';
@@ -17,6 +17,9 @@ protocol.registerSchemesAsPrivileged([{scheme:'toolkit-map', privileges:{standar
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = app.isPackaged ? path.join(process.resourcesPath, 'toolkit') : path.resolve(here, '../..');
+// R-DIST-002: Python embutido no pacote (resources/toolkit/python) ou montado em desktop/python-runtime
+const pythonEmbutido = app.isPackaged ? path.join(root, 'python', 'python.exe') : path.join(root, 'desktop', 'python-runtime', 'python.exe');
+const resolveRuntime = (settings, required) => resolverRuntime(settings, required, pythonEmbutido);
 const bridge = path.join(root, 'desktop/python/bridge.py');
 let window, settingsFile, starting = false;
 const results = new Set();

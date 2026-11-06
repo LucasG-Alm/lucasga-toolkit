@@ -65,6 +65,16 @@ Casos locais de regressão, credenciais e arquivos de projeto (DWG/DXF, planilha
 CSV e PDF) ficam fora do pacote, mesmo quando estão em pastas de ferramentas.
 O smoke do pacote verifica essas exclusões antes de abrir o executável.
 
+## R-DIST-002 — Python embutido
+
+O pacote leva o próprio Python (distribuição "embeddable" do python.org, 64 bits) com
+as bibliotecas de todas as ferramentas, para rodar num PC sem Python instalado e sem
+instalar nada. O Python escolhido segue esta ordem: o executável indicado em
+Configurações; o Python embutido (`resources/toolkit/python/python.exe` no pacote,
+`desktop/python-runtime/python.exe` no desenvolvimento); `py -3`; `python`.
+O embutido é montado por `npm run python:embutido` (fora do Git) com versão fixa
+do Python e das bibliotecas, e o script confere que todas importam.
+
 ## Revisão do painel de localização — integração 0.5.0
 
 Solicitação de Lucas em 22/10/2026, validada primeiro no HTML independente e
@@ -114,3 +124,7 @@ apresentada como Google. Entradas inválidas falham antes de criar o destino.
 - [Adaptador Python](python/bridge.py).
 
 Requisito registrado em 22/10/2026 por solicitação de Lucas.
+
+## Redesenho em revisão — HTML 2
+
+Ferros integra o grupo CAD, com abas Contar/Cotar. Configurações usam abas Ambiente local, Google e Aparência. Blueprint é o padrão para instalações sem preferência salva; os cinco temas incluem Prancha claro. Temas anteriores e cores personalizadas continuam válidos. A execução informa a condição faltante antes de habilitar o botão, incluindo inspeção e confirmação do CRS quando exigidas.

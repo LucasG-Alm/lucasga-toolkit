@@ -90,3 +90,13 @@ test('dependências do lote usam mapeamentos efetivos e não modo comum substitu
   assert.equal(usesGoogle(tool, effective), false);
   assert.equal(usesGoogle(tool, batchRuntimeOptions('localizacao', {}, [{ options: { mode: 'address' } }])), true);
 });
+
+test('R-DIST-002: Python da configuração, depois o embutido, depois py e python', async () => {
+  const { candidatosPython } = await import('../electron/settings.mjs');
+  const root = await mkdtemp(path.join(tmpdir(), 'toolkit-embutido-'));
+  const embutido = path.join(root, 'python.exe');
+  assert.deepEqual(candidatosPython({}, embutido).map(c => c.command), ['py', 'python']); // sem o arquivo
+  await writeFile(embutido, '');
+  assert.deepEqual(candidatosPython({}, embutido).map(c => c.command), [embutido, 'py', 'python']);
+  assert.deepEqual(candidatosPython({ python: 'C:\meu\python.exe' }, embutido).map(c => c.command), ['C:\meu\python.exe']);
+});

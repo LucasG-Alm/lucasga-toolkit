@@ -16,6 +16,7 @@
     "export:design": "node scripts/export-design.mjs",
     "prototype:themes": "node scripts/prototype-themes.mjs --serve",
     "prototype:location": "node scripts/prototype-location.mjs",
+    "python:embutido": "node scripts/python-embutido.mjs",
     "pack": "npm run build && electron-builder --win portable --publish never"
   },
   "dependencies": {
@@ -75,6 +76,14 @@
           "!**/__pycache__/**",
           "!**/test_*.py",
           "!**/.pytest_cache/**"
+        ]
+      },
+      {
+        "from": "python-runtime",
+        "to": "toolkit/python",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**"
         ]
       },
       {

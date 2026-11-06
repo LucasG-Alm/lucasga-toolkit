@@ -1,5 +1,6 @@
 import { readFile, writeFile, mkdir, readdir, access } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 const keys = ['python', 'core', 'oda', 'gdal', 'envFile', 'glossary'];
@@ -24,10 +25,14 @@ export async function findInstalledExecutable(parent, pattern, executable) {
   } catch { /* not installed */ }
   return '';
 }
-export async function resolveRuntime(settings, requirements = []) {
-  const candidates = settings.python ? [{ command: settings.python, args: [] }] : [
-    { command: 'py', args: ['-3'] }, { command: 'python', args: [] },
-  ];
+// R-DIST-002: o Python da configuração manda; depois o embutido (se existir), depois o do sistema.
+export function candidatosPython(settings, embutido) {
+  if (settings.python) return [{ command: settings.python, args: [] }];
+  return [...(embutido && existsSync(embutido) ? [{ command: embutido, args: [] }] : []),
+    { command: 'py', args: ['-3'] }, { command: 'python', args: [] }];
+}
+export async function resolveRuntime(settings, requirements = [], embutido = '') {
+  const candidates = candidatosPython(settings, embutido);
   let python, missing = [];
   for (const candidate of candidates) {
     try {
