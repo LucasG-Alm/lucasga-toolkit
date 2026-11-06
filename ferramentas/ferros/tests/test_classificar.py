@@ -69,3 +69,17 @@ def test_cm_igual_vale_como_c_igual():
         assert isinstance(tag, TagLida), texto
         assert (tag.quantidade, tag.numero, tag.bitola, tag.comprimento_cm) == (3, 4, 10.0, 47), texto
     assert classificar("3 N4 cm=47").faltando == ("bitola",)
+
+
+def test_quantidade_marcada_para_depois_fica_vazia():
+    """R-FER-TAG-005"""
+    for texto in ("XXN1 %%C10 c=280", "YY N3 c/15 c=100"):
+        tag = classificar(texto)
+        assert tag.quantidade is None and "quantidade" in tag.faltando
+    assert classificar("XXN1 %%C10 c=280").numero == 1
+
+
+def test_espacamento_em_texto_passa_sem_vermelho():
+    """R-FER-TAG-006"""
+    tag = classificar("2N1 Ø10 c/VAR c=280")
+    assert tag.espacamento == "VAR" and tag.espacamento_cm is None and tag.faltando == ()

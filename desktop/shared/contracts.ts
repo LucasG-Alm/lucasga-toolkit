@@ -59,7 +59,7 @@ export interface MapBounds {north: number; south: number; east: number; west: nu
 export interface MapInfo {available: boolean; template?: string; attribution: string; maxZoom: number; message?: string; tiles: number; sessions: number}
 export interface FerrosLinha {
   handle: string; layer: string; texto: string; posicao: string; numero: number;
-  bitola: number | null; comprimento_cm: number | null; quantidade: number; quantidade_desenho: number;
+  bitola: number | null; comprimento_cm: number | null; quantidade: number | null; quantidade_desenho: number | null;
   elemento: string; x: number; y: number; faltando: string[]; difere: boolean; tipo?: string;
 }
 export interface FerrosGrade { linhas: FerrosLinha[]; nao_entendi: {handle: string; texto: string; x: number; y: number}[]; multiplicadores: Record<string, number>; tipos?: Record<string, string> }

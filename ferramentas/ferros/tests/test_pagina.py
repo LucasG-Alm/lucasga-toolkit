@@ -200,3 +200,10 @@ def test_cotar_com_vermelho_bloqueia_sem_tocar_no_autocad():
     """R-FER-COT-003"""
     r = executar({"acao": "cotar", "grupos": [{"numero": 8, "handles": ["A"], "pecas": [280], "comprimento_cm": 280, "bitola": None, "quantidade": 2}]})
     assert "N8" in r["bloqueado"]
+
+
+def test_qtd_para_depois_vai_e_volta_em_json():
+    """R-FER-TAG-005"""
+    dados = grade_json("XXN1 Ø10 c=280")
+    assert dados["linhas"][0]["quantidade"] is None and dados["linhas"][0]["faltando"] == ["quantidade"]
+    assert grade_de_json(dados).linhas[0].quantidade is None

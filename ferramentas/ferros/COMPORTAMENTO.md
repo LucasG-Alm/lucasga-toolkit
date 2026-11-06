@@ -47,6 +47,8 @@ Etapas: **1 Contar** (ler + grade + Excel FERRO) → **2 Plotar tabela** → **3
 | R-FER-TAG-002 | Tag incompleta: tem posição (`N1`, `3 N1`, `2x4N11`) e ao menos um marcador (`Ø`, `c/`, `c=`), mas falta bitola ou comprimento. Entra na grade com o campo que falta em vermelho. Nada é deduzido da geometria nem de tabela antiga. |
 | R-FER-TAG-003 | Texto com marcador de tag que não fecha nenhum dos dois formatos vai para "Não entendi", com o texto cru. |
 | R-FER-TAG-004 | Texto sem marcador (inclusive `N11` sozinho, rótulo de numeração) é ignorado. |
+| R-FER-TAG-005 | Quantidade marcada para preencher depois (letras antes da posição: `XXN1`, `YY N3`) entra na grade com a Qtd vazia em vermelho; a lista não sai até preencher. |
+| R-FER-TAG-006 | `c/` aceita texto (`c/VAR`, `c/15`, `c/30x30`): o texto passa sem vermelho e vai como está para a planilha. |
 
 ### Grade e lista
 

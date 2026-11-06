@@ -36,7 +36,7 @@ def grade_de_json(dados: dict) -> Grade:
             handle=d["handle"], layer=d["layer"], tag=classificar(d["texto"]),
             bitola=None if d.get("bitola") is None else float(d["bitola"]),
             comprimento_cm=None if d.get("comprimento_cm") is None else int(d["comprimento_cm"]),
-            quantidade=int(d["quantidade"]), elemento=d["elemento"], x=d.get("x", 0.0), y=d.get("y", 0.0),
+            quantidade=None if d.get("quantidade") is None else int(d["quantidade"]), elemento=d["elemento"], x=d.get("x", 0.0), y=d.get("y", 0.0),
         ))
     nao = [TextoNaoEntendido(n["handle"], n["texto"], n["x"], n["y"]) for n in dados.get("nao_entendi", [])]
     mult = {int(k): int(v) for k, v in dados.get("multiplicadores", {}).items() if int(v) != 1}

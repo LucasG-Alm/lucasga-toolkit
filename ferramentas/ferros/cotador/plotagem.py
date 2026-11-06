@@ -60,7 +60,7 @@ class _Posicao:
     numero: int
     bitolas: set = field(default_factory=set)
     comprimentos: list = field(default_factory=list)
-    quantidade: int = 0
+    quantidade: int | None = 0  # None: alguma tag com Qtd para depois (R-FER-TAG-005)
     falta: bool = False
 
 
@@ -71,7 +71,7 @@ def _lista_com_lacunas(grade: Grade) -> tuple[list[list[Celula]], list[ItemLista
     por_pos: dict[tuple[str, int], _Posicao] = {}
     for l in grade.linhas:
         p = por_pos.setdefault((l.tag.letra, l.tag.numero), _Posicao(l.tag.letra, l.tag.numero))
-        p.quantidade += l.quantidade
+        p.quantidade = None if l.quantidade is None or p.quantidade is None else p.quantidade + l.quantidade
         p.falta |= bool(l.faltando)
         if l.bitola is not None:
             p.bitolas.add(l.bitola)
@@ -88,10 +88,12 @@ def _lista_com_lacunas(grade: Grade) -> tuple[list[list[Celula]], list[ItemLista
             linhas.append([_centro(_posicao(i.letra, i.numero)), Celula(_bitola(i.bitola)), Celula(str(i.quantidade)),
                            Celula(str(i.comprimento_unit_cm)), Celula(str(i.comprimento_total_cm))])
             continue
-        qtd = p.quantidade * grade.multiplicadores.get(p.numero, 1)
+        qtd = None if p.quantidade is None else p.quantidade * grade.multiplicadores.get(p.numero, 1)
         bitola = min(p.bitolas) if p.bitolas else None
         acos_incompletos.add(bitola)  # None = nao se sabe o aco: marca todos
-        linhas.append([_centro(_posicao(p.letra, p.numero)), Celula(_bitola(bitola)) if bitola else FALTA, Celula(str(qtd)), FALTA, FALTA])
+        linhas.append([_centro(_posicao(p.letra, p.numero)), Celula(_bitola(bitola)) if bitola else FALTA,
+                       FALTA if qtd is None else Celula(str(qtd)),
+                       Celula(str(max(p.comprimentos))) if p.comprimentos else FALTA, FALTA])
     return linhas, para_resumo, acos_incompletos, numeros
 
 

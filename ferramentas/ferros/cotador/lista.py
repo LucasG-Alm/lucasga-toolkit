@@ -13,9 +13,9 @@ _PADRAO = re.compile(
 
 _DIAMETRO = re.compile(r"%%[cC]|∅")
 _MARCADOR = re.compile(r"Ø|c/|cm?=", re.IGNORECASE)
-_POSICAO = re.compile(r"^(?:(?P<mult>\d+)x)?(?P<qtd>\d+)?\s*(?P<letra>[A-Za-z])(?P<numero>\d+)(?P<resto>.*)$")
+_POSICAO = re.compile(r"^(?:(?P<mult>\d+)x)?(?:(?P<qtd>\d+)|(?P<marca>[A-Za-z]{2,}))?\s*(?P<letra>[A-Za-z])(?P<numero>\d+)(?P<resto>.*)$")
 _CAMPOS = re.compile(
-    r"^(?:\s+Ø(?P<bitola>\d+(?:[.,]\d+)?))?(?:\s+[cC]/(?P<espacamento>\d+(?:x\d+)?))?(?:\s+[cC][mM]?=(?P<comprimento>\d+))?$"
+    r"^(?:\s+Ø(?P<bitola>\d+(?:[.,]\d+)?))?(?:\s+[cC]/(?P<espacamento>[^\s=]+))?(?:\s+[cC][mM]?=(?P<comprimento>\d+))?$"
 )
 
 
@@ -28,7 +28,7 @@ class TagLida:
 
     letra: str
     numero: int
-    quantidade: int
+    quantidade: int | None  # None: marcada para depois, como XXN1 (R-FER-TAG-005)
     bitola: float | None
     comprimento_cm: int | None
     texto: str
@@ -38,7 +38,7 @@ class TagLida:
     @property
     def faltando(self) -> tuple[str, ...]:
         return tuple(
-            nome for nome, valor in (("bitola", self.bitola), ("comprimento", self.comprimento_cm)) if valor is None
+            nome for nome, valor in (("bitola", self.bitola), ("comprimento", self.comprimento_cm), ("quantidade", self.quantidade)) if valor is None
         )
 
 
@@ -63,7 +63,8 @@ def classificar(texto: str) -> TagLida | NaoEntendi | None:
     if campos is None:
         return NaoEntendi(texto)
 
-    quantidade = int(posicao["qtd"] or 1) * int(posicao["mult"] or 1)
+    quantidade = None if posicao["marca"] else int(posicao["qtd"] or 1) * int(posicao["mult"] or 1)
+    esp = campos["espacamento"]
     return TagLida(
         letra=posicao["letra"].upper(),
         numero=int(posicao["numero"]),
@@ -71,8 +72,8 @@ def classificar(texto: str) -> TagLida | NaoEntendi | None:
         bitola=float(campos["bitola"].replace(",", ".")) if campos["bitola"] else None,
         comprimento_cm=int(campos["comprimento"]) if campos["comprimento"] else None,
         texto=limpo,
-        espacamento_cm=int(campos["espacamento"].split("x")[0]) if campos["espacamento"] else None,
-        espacamento=campos["espacamento"],
+        espacamento_cm=int(esp.split("x")[0]) if esp and re.fullmatch(r"\d+(?:x\d+)?", esp) else None,
+        espacamento=esp,
     )
 
 

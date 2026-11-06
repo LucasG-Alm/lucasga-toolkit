@@ -31,14 +31,14 @@ class Linha:
     tag: TagLida
     bitola: float | None
     comprimento_cm: int | None
-    quantidade: int
+    quantidade: int | None
     elemento: str
     x: float = 0.0
     y: float = 0.0
 
     @property
     def faltando(self) -> tuple[str, ...]:
-        return tuple(n for n, v in (("bitola", self.bitola), ("comprimento", self.comprimento_cm)) if v is None)
+        return tuple(n for n, v in (("bitola", self.bitola), ("comprimento", self.comprimento_cm), ("quantidade", self.quantidade)) if v is None)
 
     @property
     def difere_do_desenho(self) -> bool:
@@ -105,7 +105,7 @@ def _tag_efetiva(linha: Linha) -> TagLida:
 def lista_da_grade(grade: Grade) -> list[ItemLista]:
     vermelhas = sorted({f"{l.tag.letra}{l.tag.numero}" for l in grade.linhas if l.faltando})
     if vermelhas:
-        raise Bloqueado(f"preencha bitola/comprimento de: {', '.join(vermelhas)}")
+        raise Bloqueado(f"preencha bitola/comprimento/quantidade de: {', '.join(vermelhas)}")
     return montar_lista([_tag_efetiva(l) for l in grade.linhas], multiplicadores=grade.multiplicadores)
 
 
@@ -113,7 +113,8 @@ def texto_para_planilha(linha: Linha, fator: int) -> str:
     """Texto da coluna B: a planilha reconta pelo texto, entao tudo vai escrito nele."""
     tag = linha.tag
     frente = f"{fator}x" if fator != 1 else ""
-    espacamento = f" c/{tag.espacamento or tag.espacamento_cm}" if tag.espacamento_cm else ""
+    esp = tag.espacamento or tag.espacamento_cm
+    espacamento = f" c/{esp}" if esp else ""
     return f"{frente}{linha.quantidade}{tag.letra}{tag.numero} ∅{linha.bitola:g}{espacamento} c={linha.comprimento_cm}"
 
 

@@ -103,3 +103,9 @@ def test_acabamento_do_resumo():
     for i in (0, 1, 2, n - 1, n):
         assert r.horizontais[i] == [4] * 4, i
     assert all(v == [4, 4, 2, 7, 4] for v in r.verticais)
+
+
+def test_qtd_para_depois_sai_como_interrogacao_vermelha():
+    """R-FER-PLT-006 / R-FER-TAG-005"""
+    lista = planejar(grade("XXN1 Ø10 c=280"), PESO_POR_M, escala=50)[0]
+    assert [(c.texto, c.vermelho) for c in lista.linhas[3]] == [("1", False), ("10", False), ("?", True), ("280", False), ("?", True)]

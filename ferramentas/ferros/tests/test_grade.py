@@ -134,3 +134,23 @@ def test_tipo_por_posicao_padrao_layer_e_memoria(tmp_path):
     gravar_memoria(dwg, g)
     nova = montar_grade([lido("A1", "2N1 Ø10 c=100", layer="FERRO1 - VERTICAL"), lido("A3", "2N2 Ø10 c=100", layer="FERRO2 - CANALETA")], ler_memoria(dwg))
     assert nova.tipos == {2: "CANALETA"} and tipo_de(nova, 2) == "CANALETA" and tipo_de(nova, 1) == "FERRO1 - VERTICAL"
+
+
+def test_qtd_para_depois_e_vermelha_e_bloqueia_a_lista():
+    """R-FER-TAG-005"""
+    import pytest
+
+    from cotador.grade import Bloqueado, lista_da_grade
+
+    grade = montar_grade([lido("A1", "XXN1 Ø10 c=280")])
+    assert grade.linhas[0].faltando == ("quantidade",)
+    with pytest.raises(Bloqueado, match="N1"):
+        lista_da_grade(grade)
+    grade.linhas[0].quantidade = 4
+    assert lista_da_grade(grade)[0].quantidade == 4
+
+
+def test_espacamento_em_texto_vai_para_a_planilha():
+    """R-FER-TAG-006"""
+    grade = montar_grade([lido("A1", "2N1 Ø10 c/VAR c=280")])
+    assert texto_para_planilha(grade.linhas[0], 1) == "2N1 ∅10 c/VAR c=280"

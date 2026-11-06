@@ -159,7 +159,7 @@ export function FerrosPanel({ api, onError, chegada }: { api: ToolkitAPI; onErro
     const linhas = grade.linhas.map(l => {
       if (l.handle !== handle) return l;
       const n = { ...l, ...mudanca };
-      return { ...n, faltando: [n.bitola === null && 'bitola', n.comprimento_cm === null && 'comprimento'].filter(Boolean) as string[], difere: n.quantidade !== n.quantidade_desenho };
+      return { ...n, faltando: [n.bitola === null && 'bitola', n.comprimento_cm === null && 'comprimento', n.quantidade === null && 'quantidade'].filter(Boolean) as string[], difere: n.quantidade !== n.quantidade_desenho };
     });
     void atualizar({ ...grade, linhas });
   }
@@ -234,7 +234,7 @@ export function FerrosPanel({ api, onError, chegada }: { api: ToolkitAPI; onErro
             if (c.key === 'posicao') return <td key={c.key}>{l.posicao}</td>;
             if (c.key === 'bitola') return <td key={c.key} className="num"><Campo campo="bitola" linha={i} label={`Ø de ${l.handle}`} valor={l.bitola} falta={l.bitola === null} onSalvar={t => mudarLinha(l.handle, { bitola: numero(t) })} /></td>;
             if (c.key === 'comprimento_cm') return <td key={c.key} className="num"><Campo campo="comprimento" linha={i} label={`c de ${l.handle}`} valor={l.comprimento_cm} falta={l.comprimento_cm === null} onSalvar={t => { const v = numero(t); mudarLinha(l.handle, { comprimento_cm: v === null ? null : Math.round(v) }); }} /></td>;
-            if (c.key === 'quantidade') return <td key={c.key} className="num"><Campo campo="quantidade" linha={i} label={`Qtd de ${l.handle}`} valor={l.quantidade} onSalvar={t => { const v = numero(t); if (v !== null) mudarLinha(l.handle, { quantidade: Math.round(v) }); }} /></td>;
+            if (c.key === 'quantidade') return <td key={c.key} className="num"><Campo campo="quantidade" linha={i} label={`Qtd de ${l.handle}`} valor={l.quantidade} falta={l.quantidade === null} onSalvar={t => { const v = numero(t); if (v !== null) mudarLinha(l.handle, { quantidade: Math.round(v) }); }} /></td>;
             if (c.key === 'tipo') return <td key={c.key}><Campo key={`${l.handle}-${l.tipo}`} campo="tipo" linha={i} label={`Tipo de ${l.handle}`} valor={l.tipo ?? ''} onSalvar={t => mudarTipo(l.numero, t)} largura="w-40" /></td>;
             if (c.key === 'mult') return <td key={c.key} className="num"><Campo key={`${l.handle}-${l.mult}`} campo="mult" linha={i} label={`× de ${l.handle}`} valor={l.mult} onSalvar={t => mudarMultiplicador(l.numero, t)} largura="w-12" /></td>;
             return <td key={c.key}><Campo key={`${l.handle}-${l.elemento}`} campo="elemento" linha={i} label={`Elemento de ${l.handle}`} valor={l.elemento} onSalvar={t => mudarLinha(l.handle, { elemento: t.trim() || l.layer })} largura="w-40" /></td>;
