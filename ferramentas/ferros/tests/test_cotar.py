@@ -87,3 +87,12 @@ def test_aviso_quando_a_tag_sai_sem_marcador():
     assert aviso_sem_marcador(Lote(espacamento="VAR", incluir_comprimento=False), 3) is None
     assert aviso_sem_marcador(Lote(), 3) is None
     assert aviso_sem_marcador(Lote(incluir_comprimento=False), 0) is None
+
+
+def test_janela_de_busca_dos_textos_envolve_a_selecao_com_folga():
+    """R-FER-COT-011"""
+    from cotador.cotar import janela_de_busca
+
+    polys = [reto("A", 0, 0), dobrado("C", 5, -1)]
+    (x0, y0), (x1, y1) = janela_de_busca(polys, H)
+    assert [round(v, 9) for v in (x0, y0, x1, y1)] == [-3.0, -4.0, 8.91, 3.0]

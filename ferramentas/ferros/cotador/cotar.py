@@ -17,6 +17,7 @@ from cotador.ordenacao import ordem_de_leitura
 
 PERTO_NUMERO = 10  # alturas de texto: rotulo que da o numero (R-FER-COT-002)
 PERTO_TAG = 3  # alturas de texto: tag que marca "ja cotado" (R-FER-COT-004)
+FOLGA_BUSCA = 30  # alturas de texto: janela dos textos em volta da selecao (R-FER-COT-011)
 _INICIAL = re.compile(r"\s*([A-Za-z]?)\s*(\d*)\s*")
 
 
@@ -127,6 +128,14 @@ def numerar(polys: list[PolyLida], textos: list[TextoPerto], altura: float, lote
                 proximo += 1
             g.numero, proximo = proximo, proximo + 1
     return LeituraCotar(list(grupos.values()), ja)
+
+
+def janela_de_busca(polys: list[PolyLida], altura: float) -> tuple[Ponto, Ponto]:
+    """R-FER-COT-011: retangulo dos ferros + folga; so ali se procuram rotulos e tags."""
+    xs = [x for p in polys for x, _ in p.vertices]
+    ys = [y for p in polys for _, y in p.vertices]
+    f = FOLGA_BUSCA * altura
+    return (min(xs) - f, min(ys) - f), (max(xs) + f, max(ys) + f)
 
 
 def texto_da_tag(lote: Lote, letra: str, numero: int, comprimento_cm: int) -> str:

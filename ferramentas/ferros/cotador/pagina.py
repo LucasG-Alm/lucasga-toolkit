@@ -197,12 +197,12 @@ def executar(pedido: dict) -> dict:
         from cotador.cotar import anotacoes_do_lote, aviso_sem_marcador, numerar
 
         letra, _ = lote.letra_e_numero()
-        lido = cad_aberto.ler_cotar(app, _avanco, letra)
+        escala = _escala(pedido)
+        lido = cad_aberto.ler_cotar(app, _avanco, letra, ALTURA_TEXTO_NO_PAPEL * escala)
         if lido is None:
             return {"cancelado": True}
         info, polys, arrays, textos = lido
         progresso("calculando")
-        escala = _escala(pedido)
         leitura = numerar(polys, textos, ALTURA_TEXTO_NO_PAPEL * escala, lote)
         r = cad_aberto.cotar(app, anotacoes_do_lote({p.handle: p for p in polys}, leitura.grupos, lote, escala),
                              pedido.get("layer") or "TXT02", pedido.get("estilo") or "R80R")

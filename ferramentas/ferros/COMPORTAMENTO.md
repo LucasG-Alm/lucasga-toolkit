@@ -140,3 +140,4 @@ Fluxo por lote, sem grade: você digita os campos, seleciona os ferros no AutoCA
 | R-FER-COT-008 | A página lista os lotes cotados nesta sessão (campos, números usados, quantos ferros) e "Contar o que acabei de cotar" acrescenta as tags novas na aba Contar (sem duplicar). |
 | R-FER-COT-009 | A página tem as abas Contar \| Cotar; trocar de aba não perde o que está em cada uma. |
 | R-FER-COT-010 | "Incluir c=" (marcado por padrão; pedido do Lucas em 06/11/2026): desmarcado, a tag sai sem o `c=`. Se a tag ficar sem nenhum marcador (sem Ø, c/ e c=, ex.: `2N1`), o Contar não a reconhece (R-FER-TAG-004): o Cotar avisa quantas saíram assim. |
+| R-FER-COT-011 | Rótulos e tags (R-FER-COT-002 / 004) são buscados só numa janela em volta dos ferros selecionados, com folga de 30 alturas de texto (cobre os 10 do rótulo mais o comprimento da tag), não no desenho inteiro: o tempo depende da seleção, não do tamanho da prancha (13/11/2026: 679 textos levavam 10 s). |
