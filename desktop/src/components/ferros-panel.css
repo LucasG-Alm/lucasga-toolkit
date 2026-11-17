@@ -10,6 +10,8 @@
 .ferros-campo.w-12 { width: 3rem; } .ferros-campo.w-16 { width: 4rem; } .ferros-campo.w-40 { width: 10rem; }
 .ferros-campo[data-falta="true"] { border-color: #d33; background: color-mix(in srgb, #d33 12%, transparent); }
 .ferros-difere { color: #b45309; }
+.ferros-tabela tr[data-indicacao="true"] td { opacity: .55; }
+.ferros-indicacao { color: var(--muted-foreground, #6b7280); }
 .ferros-zoom { background: none; border: none; cursor: pointer; color: inherit; padding: 2px; }
 .ferros-resultado { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; }
 .ferros-total { font-weight: 600; }

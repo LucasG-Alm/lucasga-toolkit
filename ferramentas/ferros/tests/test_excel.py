@@ -140,3 +140,9 @@ def test_planilha_tem_um_resumo_por_aco(tmp_path):
     assert titulos == ["RESUMO CA-50", "RESUMO CA-60"] and len(totais) == 2
     ws1 = openpyxl.load_workbook(gerar_planilha(grade("1N1 Ø10 c=100"), PESO_POR_M, tmp_path / "q.dwg"))["FERRO"]
     assert [ws1[f"D{r}"].value for r in range(4, 30) if str(ws1[f"D{r}"].value or "").startswith("RESUMO")] == ["RESUMO CA-50"]
+
+
+def test_indicacao_em_planta_nao_vai_para_a_planilha(tmp_path):
+    """R-FER-LIS-009"""
+    ws = openpyxl.load_workbook(gerar_planilha(grade("12N4 c/20", "2x12N4 Ø10 c=425"), PESO_POR_M, tmp_path / "p.dwg"))["FERRO"]
+    assert [ws["B4"].value, ws["B5"].value] == ["24N4 ∅10 c=425", None]

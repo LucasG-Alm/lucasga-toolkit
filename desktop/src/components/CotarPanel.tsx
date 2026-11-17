@@ -17,6 +17,8 @@ export function CotarPanel({ api, onError, onContar }: { api: ToolkitAPI; onErro
   const [bitola, setBitola] = useState('');
   const [espacamento, setEspacamento] = useState('');
   const [incluirComprimento, setIncluirComprimento] = useState(true);
+  const [cotarDobras, setCotarDobras] = useState(true);
+  const [manterEspacamento, setManterEspacamento] = useState(false);
   const [escala, setEscala] = useState('50');
   const [layer, setLayer] = useState('TXT02');
   const [estilo, setEstilo] = useState('R80R');
@@ -32,7 +34,7 @@ export function CotarPanel({ api, onError, onContar }: { api: ToolkitAPI; onErro
     setCotando(true); setProgresso(null);
     try {
       const r = await api.ferros({ acao: 'cotar', quant: quant.trim(), inicial: inicial.trim(), bitola: numero(bitola), espacamento: espacamento.trim(),
-        ...(incluirComprimento ? {} : {incluirComprimento:false}), escala: numero(escala) ?? 50, layer: layer.trim() || 'TXT02', estilo: estilo.trim() || 'R80R' });
+        ...(incluirComprimento ? {} : {incluirComprimento:false}), ...(cotarDobras ? {} : {cotarDobras:false}), ...(manterEspacamento ? {manterEspacamento:true} : {}), escala: numero(escala) ?? 50, layer: layer.trim() || 'TXT02', estilo: estilo.trim() || 'R80R' });
       if (r.bloqueado) { setAvisos([r.bloqueado]); return; }
       if (r.cancelado) return;
       setAvisos(r.avisos ?? []);
@@ -66,6 +68,8 @@ export function CotarPanel({ api, onError, onContar }: { api: ToolkitAPI; onErro
       </div>
     </details>
     <label className="ferros-length-option"><input type="checkbox" checked={incluirComprimento} onChange={e=>setIncluirComprimento(e.target.checked)}/>Incluir comprimento na tag (c=)</label>
+    <label className="ferros-length-option"><input type="checkbox" aria-label="Cotar dobras" checked={cotarDobras} onChange={e=>setCotarDobras(e.target.checked)}/>Cotar dobras (desmarque para indicar em planta)</label>
+    <label className="ferros-length-option"><input type="checkbox" aria-label="Manter c/ do texto" checked={manterEspacamento} onChange={e=>setManterEspacamento(e.target.checked)}/>Manter c/ do texto selecionado</label>
 
     <Button className="ferros-cotar-action" onClick={() => void cotar()} disabled={cotando}><Crosshair aria-hidden="true"/>{cotando?'Selecione as linhas no AutoCAD…':'Cotar seleção'}</Button><p className="ferros-help">Ctrl+Z no AutoCAD desfaz o último lote.</p></FerrosSection><FerrosSection step={2} title="Lotes cotados" className="ferros-lotes-card">{!lotes.length && <p className="ferros-lotes-empty">Os lotes aparecem aqui depois de cotar.</p>}
     {cotando && <Progresso dado={progresso} />}

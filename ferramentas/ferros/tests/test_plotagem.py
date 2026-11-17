@@ -109,3 +109,9 @@ def test_qtd_para_depois_sai_como_interrogacao_vermelha():
     """R-FER-PLT-006 / R-FER-TAG-005"""
     lista = planejar(grade("XXN1 Ø10 c=280"), PESO_POR_M, escala=50)[0]
     assert [(c.texto, c.vermelho) for c in lista.linhas[3]] == [("1", False), ("10", False), ("?", True), ("280", False), ("?", True)]
+
+
+def test_indicacao_em_planta_nao_entra_na_lista_plotada():
+    """R-FER-LIS-009"""
+    lista = planejar(grade("12N4 c/20", "12N4 c/20", "2x12N4 Ø10 c=425"), PESO_POR_M, escala=50)[0]
+    assert any("24" in l for l in textos(lista)) and not any("?" in "".join(l) for l in textos(lista))

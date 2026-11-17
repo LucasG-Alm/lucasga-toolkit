@@ -197,3 +197,9 @@ def test_qtd_para_depois_vai_e_volta_em_json():
     dados = grade_json("XXN1 Ø10 c=280")
     assert dados["linhas"][0]["quantidade"] is None and dados["linhas"][0]["faltando"] == ["quantidade"]
     assert grade_de_json(dados).linhas[0].quantidade is None
+
+
+def test_json_marca_indicacao_em_planta():
+    """R-FER-LIS-009: a tela pinta de cinza pelo que o Python diz."""
+    dados = grade_json("12N4 c/20", "2x12N4 Ø10 c=425")
+    assert [l["indicacao"] for l in dados["linhas"]] == [True, False]

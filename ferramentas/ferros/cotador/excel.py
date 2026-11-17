@@ -13,7 +13,7 @@ from pathlib import Path
 import openpyxl
 from openpyxl.styles import Border, Font, Side
 
-from cotador.grade import Grade, lista_da_grade, texto_para_planilha
+from cotador.grade import Grade, contaveis, lista_da_grade, texto_para_planilha
 from cotador.resumo import CA60_PADRAO, resumos_por_aco
 
 
@@ -61,7 +61,8 @@ def gerar_planilha(grade: Grade, peso_por_m: Mapping[float, float], dwg: Path | 
         ws[celula] = valor
         ws[celula].font = NEGRITO
 
-    ultima = 3 + len(grade.linhas)
+    linhas = contaveis(grade)  # R-FER-LIS-009: indicacao em planta fica fora
+    ultima = 3 + len(linhas)
     topo = ultima + 3
     # um bloco de resumo por aco, 2 linhas vazias entre eles; o PROCV do peso cobre todos
     cabecalhos, r = [], topo
@@ -69,7 +70,7 @@ def gerar_planilha(grade: Grade, peso_por_m: Mapping[float, float], dwg: Path | 
         cabecalhos.append(r)
         r += len(bloco["linhas"]) + 4
     peso = f"$E${topo + 1}:$H${cabecalhos[-1] + len(blocos[-1]['linhas'])}"
-    for r, linha in enumerate(grade.linhas, start=4):
+    for r, linha in enumerate(linhas, start=4):
         ws[f"B{r}"] = texto_para_planilha(linha, grade.multiplicadores.get(linha.tag.numero, 1))
         ws[f"C{r}"] = linha.elemento
         for coluna, formula in _formulas(r, linha.tag.letra, peso).items():

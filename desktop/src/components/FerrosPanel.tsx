@@ -227,16 +227,16 @@ export function FerrosPanel({ api, onError, chegada }: { api: ToolkitAPI; onErro
     {grade && !lendo && <><FerrosSection step={2} title="Revisar tags"><div className="ferros-table-scroll">
       <table className="ferros-tabela">
         <thead><tr><th></th>{tGrade.cabecalho}<th></th></tr></thead>
-        <tbody>{tGrade.visiveis.map((l, i) => <tr key={l.handle} data-difere={l.difere} data-arrastando={arrastando === l.handle}
+        <tbody>{tGrade.visiveis.map((l, i) => <tr key={l.handle} data-difere={l.difere} data-indicacao={!!l.indicacao} data-arrastando={arrastando === l.handle}
           onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); mover(arrastando, l.handle); }}>
           <td><span className="ferros-alca" draggable aria-label={`Arrastar ${l.handle}`} title="Arraste para reordenar"
             onDragStart={() => setArrastando(l.handle)} onDragEnd={() => setArrastando(null)}>⠿</span><input type="checkbox" aria-label={`Marcar ${l.handle}`} checked={marcadas.has(l.handle)} onChange={e => { const s = new Set(marcadas); if (e.target.checked) s.add(l.handle); else s.delete(l.handle); setMarcadas(s); }} /></td>
           {tGrade.colunas.map(c => {
             // R-FER-UI-007: as células seguem a ordem das colunas
-            if (c.key === 'texto') return <td key={c.key}>{l.texto}{l.difere && <small className="ferros-difere"> difere do desenho ({l.quantidade_desenho})</small>}</td>;
+            if (c.key === 'texto') return <td key={c.key}>{l.texto}{l.indicacao && <small className="ferros-indicacao"> indicação em planta</small>}{l.difere && <small className="ferros-difere"> difere do desenho ({l.quantidade_desenho})</small>}</td>;
             if (c.key === 'posicao') return <td key={c.key}>{l.posicao}</td>;
-            if (c.key === 'bitola') return <td key={c.key} className="num"><Campo campo="bitola" linha={i} label={`Ø de ${l.handle}`} valor={l.bitola} falta={l.bitola === null} onSalvar={t => mudarLinha(l.handle, { bitola: numero(t) })} /></td>;
-            if (c.key === 'comprimento_cm') return <td key={c.key} className="num"><Campo campo="comprimento" linha={i} label={`c de ${l.handle}`} valor={l.comprimento_cm} falta={l.comprimento_cm === null} onSalvar={t => { const v = numero(t); mudarLinha(l.handle, { comprimento_cm: v === null ? null : Math.round(v) }); }} /></td>;
+            if (c.key === 'bitola') return <td key={c.key} className="num"><Campo campo="bitola" linha={i} label={`Ø de ${l.handle}`} valor={l.bitola} falta={l.bitola === null && !l.indicacao} onSalvar={t => mudarLinha(l.handle, { bitola: numero(t) })} /></td>;
+            if (c.key === 'comprimento_cm') return <td key={c.key} className="num"><Campo campo="comprimento" linha={i} label={`c de ${l.handle}`} valor={l.comprimento_cm} falta={l.comprimento_cm === null && !l.indicacao} onSalvar={t => { const v = numero(t); mudarLinha(l.handle, { comprimento_cm: v === null ? null : Math.round(v) }); }} /></td>;
             if (c.key === 'quantidade') return <td key={c.key} className="num"><Campo campo="quantidade" linha={i} label={`Qtd de ${l.handle}`} valor={l.quantidade} falta={l.quantidade === null} onSalvar={t => { const v = numero(t); if (v !== null) mudarLinha(l.handle, { quantidade: Math.round(v) }); }} /></td>;
             if (c.key === 'tipo') return <td key={c.key}><Campo key={`${l.handle}-${l.tipo}`} campo="tipo" linha={i} label={`Tipo de ${l.handle}`} valor={l.tipo ?? ''} onSalvar={t => mudarTipo(l.numero, t)} largura="w-40" /></td>;
             if (c.key === 'mult') return <td key={c.key} className="num"><Campo key={`${l.handle}-${l.mult}`} campo="mult" linha={i} label={`× de ${l.handle}`} valor={l.mult} onSalvar={t => mudarMultiplicador(l.numero, t)} largura="w-12" /></td>;

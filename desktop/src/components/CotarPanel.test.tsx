@@ -74,3 +74,13 @@ test('comprimento é opcional no pedido e na prévia', async () => {
   expect(screen.getByText('Campos da tag')).toBeTruthy();
   expect(screen.getByRole('group', {name:'Escolher bitola'})).toBeTruthy();
 });
+
+test('cotar dobras e manter c/ só vão no pedido quando saem do padrão', async () => {
+  // R-FER-COT-012 / 014
+  const { api, ferros } = setup(p => p.acao === 'cotar' ? lote1 : {});
+  render(<CotarPanel api={api} onError={() => {}} onContar={() => {}} />);
+  await userEvent.click(screen.getByLabelText('Cotar dobras'));
+  await userEvent.click(screen.getByLabelText('Manter c/ do texto'));
+  await userEvent.click(screen.getByRole('button', { name: 'Cotar seleção' }));
+  await waitFor(() => expect(ferros).toHaveBeenCalledWith(expect.objectContaining({ acao: 'cotar', cotarDobras: false, manterEspacamento: true })));
+});

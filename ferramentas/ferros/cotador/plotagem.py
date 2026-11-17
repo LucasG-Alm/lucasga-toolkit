@@ -8,7 +8,7 @@ largura 72,7 mm, linha 4,5 mm, texto 2 mm, titulo 3,2 mm (R-FER-PLT-005).
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
-from cotador.grade import Grade, _tag_efetiva, tipo_de
+from cotador.grade import Grade, _tag_efetiva, contaveis, tipo_de
 from cotador.lista import ItemLista, montar_lista
 from cotador.resumo import CA60_PADRAO, resumos_por_aco
 from cotador.tabela import _bitola, _posicao
@@ -66,10 +66,11 @@ class _Posicao:
 
 def _lista_com_lacunas(grade: Grade) -> tuple[list[list[Celula]], list[ItemLista], set, list[int]]:
     """Linhas da LISTA (com "?" onde falta) e os itens completos que vao para o resumo."""
-    completas = [l for l in grade.linhas if not l.faltando]
+    linhas = contaveis(grade)  # R-FER-LIS-009
+    completas = [l for l in linhas if not l.faltando]
     itens = {(i.letra, i.numero): i for i in montar_lista([_tag_efetiva(l) for l in completas], multiplicadores=grade.multiplicadores)}
     por_pos: dict[tuple[str, int], _Posicao] = {}
-    for l in grade.linhas:
+    for l in linhas:
         p = por_pos.setdefault((l.tag.letra, l.tag.numero), _Posicao(l.tag.letra, l.tag.numero))
         p.quantidade = None if l.quantidade is None or p.quantidade is None else p.quantidade + l.quantidade
         p.falta |= bool(l.faltando)

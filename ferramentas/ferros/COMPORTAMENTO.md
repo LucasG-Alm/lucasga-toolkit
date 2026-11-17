@@ -62,6 +62,7 @@ Etapas: **1 Contar** (ler + grade + Excel FERRO) → **2 Plotar tabela** → **3
 | R-FER-LIS-006 | Com campo vermelho, o RESUMO e a exportação ficam bloqueados até ser preenchido. |
 | R-FER-LIS-008 | Tipo da posição (alvenaria vertical, canaleta, viga, estribo…) é por posição, como o ×: padrão = layer do texto da primeira tag da posição; editável; fica no `.ferros.json`. Na LISTA plotada, linha cor 2 onde o Tipo muda de uma posição para a seguinte. |
 | R-FER-LIS-007 | Coluna Elemento começa com o layer do texto; editável, inclusive em várias linhas de uma vez. |
+| R-FER-LIS-009 | Indicação em planta (17/11/2026): numa posição que tem ao menos uma tag com bitola e comprimento (o detalhe), as tags dela sem bitola e sem comprimento (`12N4 c/20` na planta) não somam: ficam na grade em cinza, "indicação em planta", e não bloqueiam, não entram na lista, na tabela plotada nem na planilha. Posição só com tags de planta segue as regras de sempre (R-FER-TAG-002). |
 
 ### Peso por metro
 
@@ -141,3 +142,6 @@ Fluxo por lote, sem grade: você digita os campos, seleciona os ferros no AutoCA
 | R-FER-COT-009 | A página tem as abas Contar \| Cotar; trocar de aba não perde o que está em cada uma. |
 | R-FER-COT-010 | "Incluir c=" (marcado por padrão; pedido do Lucas em 06/11/2026): desmarcado, a tag sai sem o `c=`. Se a tag ficar sem nenhum marcador (sem Ø, c/ e c=, ex.: `2N1`), o Contar não a reconhece (R-FER-TAG-004): o Cotar avisa quantas saíram assim. |
 | R-FER-COT-011 | Rótulos e tags (R-FER-COT-002 / 004) são buscados só numa janela em volta dos ferros selecionados, com folga de 30 alturas de texto (cobre os 10 do rótulo mais o comprimento da tag), não no desenho inteiro: o tempo depende da seleção, não do tamanho da prancha (13/11/2026: 679 textos levavam 10 s). |
+| R-FER-COT-012 | "Cotar dobras" (marcado por padrão; 17/11/2026): desmarcado, sai só a tag, sem a cota de cada trecho — é o ferro indicado em planta. |
+| R-FER-COT-013 | Detalhar a partir da planta (17/11/2026): a seleção aceita TEXT/MTEXT. Com N inicial sem número, o texto **selecionado** que deu o número ao ferro (rótulo ou tag da letra, R-FER-COT-002) é apagado e a tag nova entra no lugar certo; texto que deu o número mas não foi selecionado fica. Quant vazio herda a quantidade escrita no texto (`12N4 c/20` → `12`). |
+| R-FER-COT-014 | "Manter c/ do texto" (desmarcado por padrão): marcado e com o campo c/ vazio, a tag nova herda o `c/` do texto substituído (R-FER-COT-013). |

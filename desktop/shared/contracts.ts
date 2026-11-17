@@ -60,13 +60,13 @@ export interface MapInfo {available: boolean; template?: string; attribution: st
 export interface FerrosLinha {
   handle: string; layer: string; texto: string; posicao: string; numero: number;
   bitola: number | null; comprimento_cm: number | null; quantidade: number | null; quantidade_desenho: number | null;
-  elemento: string; x: number; y: number; faltando: string[]; difere: boolean; tipo?: string;
+  elemento: string; x: number; y: number; faltando: string[]; difere: boolean; tipo?: string; indicacao?: boolean;
 }
 export interface FerrosGrade { linhas: FerrosLinha[]; nao_entendi: {handle: string; texto: string; x: number; y: number}[]; multiplicadores: Record<string, number>; tipos?: Record<string, string> }
 export interface FerrosDesenho { nome: string; caminho: string | null }
 export interface FerrosPedido {
   acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar' | 'exportar' | 'plotar' | 'cotar';
-  quant?: string; inicial?: string; bitola?: number | null; espacamento?: string; incluirComprimento?: boolean;
+  quant?: string; inicial?: string; bitola?: number | null; espacamento?: string; incluirComprimento?: boolean; cotarDobras?: boolean; manterEspacamento?: boolean;
   escala?: number; layer?: string; estilo?: string; substituir?: boolean;
   grade?: FerrosGrade; caminho?: string | null; x?: number; y?: number; peso?: Record<string, number>;
   modo?: 'nova' | 'adicionar' | 'remover'; elemento?: string; ca60?: number[];

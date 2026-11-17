@@ -300,7 +300,7 @@ def _poly(ent):
     return PolyLida(ent.Handle, ent.Layer, tuple(pontos))
 
 
-def polys_de(entidades: Iterable, progresso: Callable | None = None) -> tuple[list, list[dict]]:
+def polys_de(entidades: Iterable, progresso: Callable | None = None, textos: set | None = None) -> tuple[list, list[dict]]:
     """R-FER-COT-001 / 005: LWPOLYLINE viram ferros; arrays (*U) so sao contados."""
     polys, arrays = [], []
     entidades = list(entidades)
@@ -315,6 +315,8 @@ def polys_de(entidades: Iterable, progresso: Callable | None = None) -> tuple[li
         elif nome == "AcDbBlockReference" and ent.Name.upper().startswith("*U"):
             x, y, _ = ent.InsertionPoint
             arrays.append({"handle": ent.Handle, "x": x, "y": y})
+        elif textos is not None and nome in ("AcDbText", "AcDbMText"):
+            textos.add(ent.Handle)  # R-FER-COT-013: texto selecionado pode ser substituido
     return polys, arrays
 
 
@@ -346,7 +348,7 @@ def textos_com_n(doc, letra: str = "N", janela=None) -> list:
             continue
         # TEXT alinhado guarda o ponto do alinhamento; o InsertionPoint fica no canto esquerdo
         p = ent.TextAlignmentPoint if ent.ObjectName == "AcDbText" and ent.Alignment != 0 else ent.InsertionPoint
-        saida.append(TextoPerto(texto, p[0], p[1]))
+        saida.append(TextoPerto(texto, p[0], p[1], ent.Handle))
     selecao.Delete()
     return saida
 
@@ -354,18 +356,22 @@ def textos_com_n(doc, letra: str = "N", janela=None) -> list:
 def ler_cotar(app, progresso: Callable | None = None, letra: str = "N", altura: float | None = None):
     """(info, polys, arrays, textos com a letra) ou None se cancelado."""
     info = desenho_ativo(app)
-    ents = _selecao(app, "LWPOLYLINE,INSERT", progresso)
+    ents = _selecao(app, "LWPOLYLINE,INSERT,TEXT,MTEXT", progresso)
     if ents is None:
         return None
-    polys, arrays = polys_de(ents, progresso)
+    selecionados: set[str] = set()
+    polys, arrays = polys_de(ents, progresso, selecionados)
     from cotador.cotar import janela_de_busca
 
     if not polys:
         return info, polys, arrays, []
-    return info, polys, arrays, textos_com_n(app.ActiveDocument, letra, janela_de_busca(polys, altura) if altura else None)
+    from dataclasses import replace
+
+    textos = textos_com_n(app.ActiveDocument, letra, janela_de_busca(polys, altura) if altura else None)
+    return info, polys, arrays, [replace(t, selecionado=t.handle in selecionados) for t in textos]
 
 
-def cotar(app, anotacoes, layer: str = "TXT02", estilo: str = "R80R") -> dict:
+def cotar(app, anotacoes, layer: str = "TXT02", estilo: str = "R80R", apagar=()) -> dict:
     """R-FER-COT-006: tags e cotas entre marcas de UNDO. Devolve as tags como TextoLido (R-FER-COT-009)."""
     from cotador.lista import TagLida, classificar
 
@@ -383,6 +389,8 @@ def cotar(app, anotacoes, layer: str = "TXT02", estilo: str = "R80R") -> dict:
         except Exception:
             avisos.append(f"Estilo de texto {estilo} não existe neste desenho: usei {doc.ActiveTextStyle.Name}.")
             estilo = doc.ActiveTextStyle.Name
+        for h in apagar:  # R-FER-COT-013: o texto copiado da planta da lugar a tag nova
+            doc.HandleToObject(h).Delete()
         for a in anotacoes:
             t = ms.AddText(a.texto, ponto(*a.posicao), a.altura)
             t.Alignment = _ALINHAR_MEIO

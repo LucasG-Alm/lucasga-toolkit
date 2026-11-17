@@ -6,7 +6,7 @@ Acoes: ler (AutoCAD), zoom (AutoCAD), calcular, gravar (memoria ao lado do DWG),
 import json
 from pathlib import Path
 
-from cotador.grade import Bloqueado, Grade, Linha, TextoNaoEntendido, gravar_memoria, lista_da_grade, montar_grade, ler_memoria, tipo_de
+from cotador.grade import Bloqueado, Grade, Linha, TextoNaoEntendido, gravar_memoria, indicacoes, lista_da_grade, montar_grade, ler_memoria, tipo_de
 from cotador.lista import classificar
 from cotador.resumo import CA60_PADRAO, PESO_POR_M, resumos_por_aco
 
@@ -21,8 +21,9 @@ def _linha_para_json(l: Linha) -> dict:
 
 
 def grade_para_json(grade: Grade) -> dict:
+    planta = indicacoes(grade)  # R-FER-LIS-009
     return {
-        "linhas": [{**_linha_para_json(l), "tipo": tipo_de(grade, l.tag.numero)} for l in grade.linhas],
+        "linhas": [{**_linha_para_json(l), "tipo": tipo_de(grade, l.tag.numero), "indicacao": l.handle in planta} for l in grade.linhas],
         "nao_entendi": [{"handle": n.handle, "texto": n.texto, "x": n.x, "y": n.y} for n in grade.nao_entendi],
         "multiplicadores": {str(k): v for k, v in grade.multiplicadores.items()},
         "tipos": {str(k): v for k, v in grade.tipos.items()},
@@ -114,7 +115,8 @@ def _lote(pedido: dict):
     b = pedido.get("bitola")
     return Lote(quant=str(pedido.get("quant") or ""), inicial=str(pedido.get("inicial") or ""),
                 bitola=None if b in (None, "") else float(b), espacamento=str(pedido.get("espacamento") or ""),
-                incluir_comprimento=pedido.get("incluirComprimento", True) is not False)
+                incluir_comprimento=pedido.get("incluirComprimento", True) is not False,
+                cotar_dobras=pedido.get("cotarDobras", True) is not False, manter_espacamento=pedido.get("manterEspacamento") is True)
 
 
 def _escala(pedido: dict) -> float:
@@ -205,7 +207,8 @@ def executar(pedido: dict) -> dict:
         progresso("calculando")
         leitura = numerar(polys, textos, ALTURA_TEXTO_NO_PAPEL * escala, lote)
         r = cad_aberto.cotar(app, anotacoes_do_lote({p.handle: p for p in polys}, leitura.grupos, lote, escala),
-                             pedido.get("layer") or "TXT02", pedido.get("estilo") or "R80R")
+                             pedido.get("layer") or "TXT02", pedido.get("estilo") or "R80R",
+                             [h for g in leitura.grupos for h in g.apagar])
         cotados = sum(len(g.handles) for g in leitura.grupos)
         r["avisos"] += [a for a in [aviso_sem_marcador(lote, cotados)] if a]
         return {"desenho": _desenho_json(info), "cotados": cotados,

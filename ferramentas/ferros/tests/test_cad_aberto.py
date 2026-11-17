@@ -171,3 +171,31 @@ def test_cotar_lote_numera_escreve_e_o_contar_le(desenho_temporario):
     grade = montar_grade(r["textos"])
     assert sorted(l.tag.texto for l in grade.linhas) == ["XXN1 Ø10 c/VAR c=102", "XXN2 Ø10 c/VAR c=280"]
     assert all(l.faltando == ("quantidade",) and l.layer == "TXT02" for l in grade.linhas)
+
+
+@autocad
+def test_detalhar_substitui_o_texto_copiado_da_planta(desenho_temporario):
+    """R-FER-COT-011 / 012 / 013: janela de busca, sem cotas das dobras, texto selecionado vira a tag nova."""
+    import pythoncom
+    from dataclasses import replace
+
+    from cotador.cotar import Lote, anotacoes_do_lote, janela_de_busca, numerar
+
+    app, doc = desenho_temporario
+    ms = doc.ModelSpace
+    ferro = ms.AddLightWeightPolyline(cad_aberto._variant(pythoncom.VT_R8, [0.0, 0.0, 0.0, 0.11, 0.91, 0.11]))
+    copiado = ms.AddText("12N4 c/20", cad_aberto.ponto(0.3, 0.2), 0.1)
+    planta = ms.AddText("12N4 c/20", cad_aberto.ponto(0.3, 0.6), 0.1)  # perto, nao selecionado
+    longe = ms.AddText("12N9 c/20", cad_aberto.ponto(500.0, 500.0), 0.1)
+    polys, _ = cad_aberto.polys_de([ferro])
+    textos = cad_aberto.textos_com_n(doc, "N", janela_de_busca(polys, 0.1))
+    assert longe.Handle not in {t.handle for t in textos}
+    textos = [replace(t, selecionado=t.handle == copiado.Handle) for t in textos]
+    lote = Lote(quant="2x12", bitola=10.0, cotar_dobras=False)
+    leitura = numerar(polys, textos, 0.1, lote)
+    assert [(g.numero, g.apagar) for g in leitura.grupos] == [(4, [copiado.Handle])]
+    antes = ms.Count
+    r = cad_aberto.cotar(app, anotacoes_do_lote({p.handle: p for p in polys}, leitura.grupos, lote, 50), apagar=leitura.grupos[0].apagar)
+    assert ms.Count == antes  # 1 apagado, 1 tag nova, nenhuma cota
+    assert [t.texto for t in r["textos"]] == ["2x12N4 %%C10 c=102"]
+    assert doc.HandleToObject(planta.Handle).TextString == "12N4 c/20"

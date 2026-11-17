@@ -269,3 +269,14 @@ test('Tipo por posição: editar numa linha vale para a posição toda (R-FER-LI
   expect((screen.getByLabelText('Tipo de A4') as HTMLInputElement).value).toBe('CANALETA');
   expect((screen.getByLabelText('Tipo de A2') as HTMLInputElement).value).toBe('TXT02');
 });
+
+test('indicação em planta fica cinza e não vermelha (R-FER-LIS-009)', async () => {
+  const planta = linha({ handle: 'P1', texto: '12N4 c/20', posicao: 'N4', numero: 4, bitola: null, comprimento_cm: null, quantidade: 12, quantidade_desenho: 12, faltando: ['bitola', 'comprimento'], indicacao: true });
+  const { api } = setup(p => p.acao === 'ler' ? { ...lido, grade: { ...lido.grade, linhas: [planta, linha({ indicacao: false })] } } : { lista: [], resumo: [], total: 0 });
+  render(<FerrosPanel api={api} onError={() => {}} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Ler seleção do AutoCAD' }));
+  const cinza = await screen.findByRole('row', { name: /12N4 c\/20/ });
+  expect(cinza.getAttribute('data-indicacao')).toBe('true');
+  expect(within(cinza).getByText(/indicação em planta/)).toBeTruthy();
+  expect(within(cinza).getByLabelText('Ø de P1').getAttribute('data-falta')).toBe('false');
+});

@@ -102,11 +102,24 @@ def _tag_efetiva(linha: Linha) -> TagLida:
     return replace(linha.tag, bitola=linha.bitola, comprimento_cm=linha.comprimento_cm, quantidade=linha.quantidade)
 
 
+def indicacoes(grade: Grade) -> set[str]:
+    """R-FER-LIS-009: tags de planta (sem bitola e sem comprimento) de posicao que tem detalhe."""
+    def planta(l: Linha) -> bool:
+        return l.bitola is None and l.comprimento_cm is None
+    com_detalhe = {(l.tag.letra, l.tag.numero) for l in grade.linhas if l.bitola is not None and l.comprimento_cm is not None}
+    return {l.handle for l in grade.linhas if planta(l) and (l.tag.letra, l.tag.numero) in com_detalhe}
+
+
+def contaveis(grade: Grade) -> list[Linha]:
+    fora = indicacoes(grade)
+    return [l for l in grade.linhas if l.handle not in fora]
+
+
 def lista_da_grade(grade: Grade) -> list[ItemLista]:
-    vermelhas = sorted({f"{l.tag.letra}{l.tag.numero}" for l in grade.linhas if l.faltando})
+    vermelhas = sorted({f"{l.tag.letra}{l.tag.numero}" for l in contaveis(grade) if l.faltando})
     if vermelhas:
         raise Bloqueado(f"preencha bitola/comprimento/quantidade de: {', '.join(vermelhas)}")
-    return montar_lista([_tag_efetiva(l) for l in grade.linhas], multiplicadores=grade.multiplicadores)
+    return montar_lista([_tag_efetiva(l) for l in contaveis(grade)], multiplicadores=grade.multiplicadores)
 
 
 def texto_para_planilha(linha: Linha, fator: int) -> str:

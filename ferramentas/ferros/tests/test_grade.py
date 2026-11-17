@@ -154,3 +154,17 @@ def test_espacamento_em_texto_vai_para_a_planilha():
     """R-FER-TAG-006"""
     grade = montar_grade([lido("A1", "2N1 Ø10 c/VAR c=280")])
     assert texto_para_planilha(grade.linhas[0], 1) == "2N1 ∅10 c/VAR c=280"
+
+
+def test_indicacao_em_planta_nao_soma_quando_a_posicao_tem_detalhe():
+    """R-FER-LIS-009"""
+    from cotador.grade import indicacoes
+
+    grade = montar_grade([lido("P1", "12N4 c/20"), lido("P2", "12N4 c/20"), lido("D1", "2x12N4 %%C10 c=425"),
+                          lido("P3", "10N10 c/20")])
+    assert indicacoes(grade) == {"P1", "P2"}
+    grade.linhas[3].bitola, grade.linhas[3].comprimento_cm = 8.0, 300  # N10 so em planta: preenchido, soma
+    assert {i.numero: i.quantidade for i in lista_da_grade(grade)} == {4: 24, 10: 10}
+    with pytest.raises(Bloqueado, match="N10"):
+        grade.linhas[3].bitola = None
+        lista_da_grade(grade)

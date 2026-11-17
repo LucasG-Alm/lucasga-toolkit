@@ -96,3 +96,50 @@ def test_janela_de_busca_dos_textos_envolve_a_selecao_com_folga():
     polys = [reto("A", 0, 0), dobrado("C", 5, -1)]
     (x0, y0), (x1, y1) = janela_de_busca(polys, H)
     assert [round(v, 9) for v in (x0, y0, x1, y1)] == [-3.0, -4.0, 8.91, 3.0]
+
+
+def test_sem_cotar_dobras_sai_so_a_tag():
+    """R-FER-COT-012"""
+    polys = [dobrado("C", 0, 0)]
+    r = numerar(polys, [], H, Lote())
+    textos = [a.texto for a in anotacoes_do_lote({"C": polys[0]}, r.grupos, Lote(bitola=8.0, cotar_dobras=False), 50)]
+    assert textos == ["N1 %%C8 c=102"]
+
+
+def test_texto_selecionado_da_o_numero_e_e_substituido_herdando_a_quant():
+    """R-FER-COT-013"""
+    polys = [reto("A", 0, 0)]
+    copiado = TextoPerto("12N4 c/20", 1.4, 0.15, handle="T1", selecionado=True)
+    longe = TextoPerto("12N4 c/20", 1.4, 0.5, handle="T2")  # perto, mas fora da selecao
+    r = numerar(polys, [copiado, longe], H, Lote(bitola=10.0))
+    g = r.grupos[0]
+    assert (g.numero, g.apagar) == (4, ["T1"])
+    assert [a.texto for a in anotacoes_do_lote({"A": polys[0]}, r.grupos, Lote(bitola=10.0), 50)] == ["12N4 %%C10 c=280"]
+    lote = Lote(quant="2x12", bitola=10.0)
+    assert anotacoes_do_lote({"A": polys[0]}, numerar(polys, [copiado], H, lote).grupos, lote, 50)[0].texto == "2x12N4 %%C10 c=280"
+
+
+def test_numero_digitado_nao_apaga_texto():
+    """R-FER-COT-013"""
+    r = numerar([reto("A", 0, 0)], [TextoPerto("12N4 c/20", 1.4, 0.15, handle="T1", selecionado=True)], H, Lote(inicial="N7"))
+    assert (r.grupos[0].numero, r.grupos[0].apagar) == (7, [])
+
+
+def test_manter_c_do_texto_so_quando_marcado_e_campo_vazio():
+    """R-FER-COT-014"""
+    polys = [reto("A", 0, 0)]
+    copiado = [TextoPerto("12N4 c/20", 1.4, 0.15, handle="T1", selecionado=True)]
+    def tag(lote):
+        return anotacoes_do_lote({"A": polys[0]}, numerar(polys, copiado, H, lote).grupos, lote, 50)[0].texto
+    assert tag(Lote(manter_espacamento=True)) == "12N4 c/20 c=280"
+    assert tag(Lote(manter_espacamento=True, espacamento="15")) == "12N4 c/15 c=280"
+    assert tag(Lote()) == "12N4 c=280"
+
+
+def test_pedido_le_cotar_dobras_e_manter_c():
+    """R-FER-COT-012 / R-FER-COT-014"""
+    from cotador.pagina import _lote
+
+    assert (_lote({}).cotar_dobras, _lote({}).manter_espacamento) == (True, False)
+    l = _lote({"cotarDobras": False, "manterEspacamento": True})
+    assert (l.cotar_dobras, l.manter_espacamento) == (False, True)

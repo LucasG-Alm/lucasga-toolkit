@@ -30,6 +30,8 @@ class Lote:
     bitola: float | None = None
     espacamento: str = ""
     incluir_comprimento: bool = True
+    cotar_dobras: bool = True  # R-FER-COT-012
+    manter_espacamento: bool = False  # R-FER-COT-014
 
     def letra_e_numero(self) -> tuple[str, int | None]:
         m = _INICIAL.fullmatch(self.inicial)
@@ -54,6 +56,8 @@ class TextoPerto:
     texto: str
     x: float
     y: float
+    handle: str = ""
+    selecionado: bool = False  # R-FER-COT-013: so texto selecionado pode ser apagado
 
 
 @dataclass
@@ -62,6 +66,9 @@ class GrupoCotar:
     numero: int
     handles: list[str]
     comprimento_cm: int
+    apagar: list[str] = field(default_factory=list)  # R-FER-COT-013
+    quant: str = ""  # herdados do texto substituido
+    espacamento: str = ""
 
 
 @dataclass
@@ -86,6 +93,14 @@ def _ler_texto(texto: str, letra: str) -> tuple[int | None, bool]:
     return (int(m.group(1)) if m else None), False
 
 
+def _quant_e_espacamento(texto: str, letra: str, numero: int) -> tuple[str, str]:
+    """R-FER-COT-013 / 014: o que vem antes da posicao e o c/ do texto que deu o numero."""
+    m = re.match(rf"\s*(.*?)\s*{letra}\s*{numero}(?!\d)", texto, re.IGNORECASE)
+    lida = classificar(texto)
+    esp = lida.espacamento or (str(lida.espacamento_cm) if lida.espacamento_cm else "") if isinstance(lida, TagLida) else ""
+    return (m.group(1).strip() if m else ""), esp
+
+
 def numerar(polys: list[PolyLida], textos: list[TextoPerto], altura: float, lote: Lote) -> LeituraCotar:
     """R-FER-COT-002 / 004"""
     letra, inicio = lote.letra_e_numero()
@@ -103,20 +118,28 @@ def numerar(polys: list[PolyLida], textos: list[TextoPerto], altura: float, lote
         else:
             livres.append(i)
 
-    def rotulo_perto(f: Ferro) -> int | None:
+    def rotulo_perto(f: Ferro) -> tuple[int, TextoPerto] | None:
         if inicio is not None:
             return None  # numero digitado manda
-        perto = [(min(_distancia((t.x, t.y), s) for s in f.segmentos), n) for t, n in rotulos]
+        perto = [(min(_distancia((t.x, t.y), s) for s in f.segmentos), k) for k, (t, _) in enumerate(rotulos)]
         perto = [d for d in perto if d[0] <= PERTO_NUMERO * altura]
-        return min(perto)[1] if perto else None
+        if not perto:
+            return None
+        t, n = rotulos[min(perto)[1]]
+        return n, t
 
     grupos: dict[tuple, GrupoCotar] = {}
     for j in ordem_de_leitura([ferros[i] for i in livres]):
         i = livres[j]
-        chave = (rotulo_perto(ferros[i]), assinatura_canonica(ferros[i]))
+        achado = rotulo_perto(ferros[i])
+        chave = (achado[0] if achado else None, assinatura_canonica(ferros[i]))
         if chave not in grupos:
             grupos[chave] = GrupoCotar(letra, chave[0] or 0, [], round(ferros[i].comprimento_total * 100))
+            if achado:
+                grupos[chave].quant, grupos[chave].espacamento = _quant_e_espacamento(achado[1].texto, letra, achado[0])
         grupos[chave].handles.append(polys[i].handle)
+        if achado and achado[1].selecionado and achado[1].handle not in grupos[chave].apagar:
+            grupos[chave].apagar.append(achado[1].handle)  # R-FER-COT-013
 
     usados = set() if inicio is not None else {n for _, n in rotulos}
     proximo = inicio or 1
@@ -160,7 +183,10 @@ def anotacoes_do_lote(polys: dict[str, PolyLida], grupos: list[GrupoCotar], lote
     saida = []
     for g in grupos:
         tag = Tag(numero=g.numero, bitola=lote.bitola or 0, comprimento_cm=g.comprimento_cm)
+        efetivo = replace(lote, quant=lote.quant.strip() or g.quant,  # R-FER-COT-013 / 014
+                          espacamento=lote.espacamento.strip() or (g.espacamento if lote.manter_espacamento else ""))
         for h in g.handles:
             a = anotacoes_do_ferro(polys[h].ferro, tag, cfg)
-            saida += [replace(a[0], texto=texto_da_tag(lote, g.letra, g.numero, g.comprimento_cm)), *a[1:]]
+            saida += [replace(a[0], texto=texto_da_tag(efetivo, g.letra, g.numero, g.comprimento_cm)),
+                      *(a[1:] if lote.cotar_dobras else [])]  # R-FER-COT-012
     return saida
