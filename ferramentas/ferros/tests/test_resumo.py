@@ -51,7 +51,7 @@ def test_valores_da_planilha_do_lucas_estao_na_constante():
     assert PESO_POR_M[8.0] == 0.40
     assert PESO_POR_M[10.0] == 0.617
     assert PESO_POR_M[12.5] == 1.00
-    assert PESO_POR_M[16.0] == 1.20
+    assert PESO_POR_M[16.0] == 1.60  # a planilha tinha 1,20 por engano (R-FER-PES-001)
 
 
 def test_caso_completo_dos_tres_arquivos_cotados():
@@ -65,8 +65,8 @@ def test_caso_completo_dos_tres_arquivos_cotados():
     assert total == pytest.approx(404.26, abs=0.005)
 
 
-def test_bitola_16_usa_o_valor_do_lucas_e_nao_o_da_norma():
-    # 1.20 kg/m foi informado pelo Lucas; a NBR 7480 diz 1.578.
-    assert PESO_POR_M[16.0] == 1.20
+def test_bitola_16_usa_o_valor_arredondado_do_lucas_e_nao_o_da_norma():
+    """R-FER-PES-001: 1,60 kg/m (arredondado pelo Lucas; a NBR diz 1,578). O 1,20 antigo era erro de digitação."""
+    assert PESO_POR_M[16.0] == 1.60
     linhas, _ = montar_resumo([_item(30, 16.0, 417, 80)])
-    assert linhas[0].peso_kg == pytest.approx(400.32, abs=0.005)
+    assert linhas[0].peso_kg == pytest.approx(533.76, abs=0.005)

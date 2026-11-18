@@ -6,7 +6,7 @@ from cotador.resumo import PESO_POR_M, montar_resumo
 
 def test_peso_padrao_e_o_da_planilha_ferro():
     """R-FER-PES-001"""
-    assert {k: v for k, v in PESO_POR_M.items() if k >= 6.3} == {6.3: 0.25, 8.0: 0.40, 10.0: 0.617, 12.5: 1.00, 16.0: 1.20}
+    assert {k: v for k, v in PESO_POR_M.items() if k >= 6.3} == {6.3: 0.25, 8.0: 0.40, 10.0: 0.617, 12.5: 1.00, 16.0: 1.60}
 
 
 def test_peso_editado_vale():

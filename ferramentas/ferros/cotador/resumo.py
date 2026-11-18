@@ -11,7 +11,7 @@ PESO_POR_M: Mapping[float, float] = {
     8.0: 0.40,
     10.0: 0.617,
     12.5: 1.00,
-    16.0: 1.20,
+    16.0: 1.60,  # a planilha tinha 1,20 por engano (R-FER-PES-001)
 }
 """Peso linear por bitola, em kg/m — a tabela da planilha do Lucas.
 
