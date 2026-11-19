@@ -51,7 +51,7 @@
   gap: var(--ferros-gap);
   min-width: 0;
 }
-.ferros-screen .ferros-abas { display: inline-grid; grid-template-columns: 1fr 1fr; align-self: flex-start; padding: 3px; gap: 2px; background: var(--ferros-panel); border: 1px solid var(--ferros-outline); border-radius: var(--ferros-radius); margin: 0; }
+.ferros-screen .ferros-abas { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; align-self: flex-start; padding: 3px; gap: 2px; background: var(--ferros-panel); border: 1px solid var(--ferros-outline); border-radius: var(--ferros-radius); margin: 0; }
 .ferros-screen .ferros-aba { height: var(--ferros-control-height); padding: 0 22px; border: 0; border-radius: var(--ferros-control-radius); font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 1; color: var(--ferros-subtle); }
 .ferros-screen .ferros-aba small { font-size: 12px; font-weight: 400; }
 .ferros-screen .ferros-aba[aria-selected=true] { background: var(--ferros-accent); color: var(--primary-foreground); }

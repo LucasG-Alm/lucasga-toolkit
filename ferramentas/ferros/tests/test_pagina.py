@@ -203,3 +203,46 @@ def test_json_marca_indicacao_em_planta():
     """R-FER-LIS-009: a tela pinta de cinza pelo que o Python diz."""
     dados = grade_json("12N4 c/20", "2x12N4 Ø10 c=425")
     assert [l["indicacao"] for l in dados["linhas"]] == [True, False]
+
+
+from cotador.conferencia import Cota  # noqa: E402
+
+
+def _conf_grade():
+    """504 em miniatura: detalhe 3N11 + 3N11, planta 10N11 c/20 em cima e embaixo, cota 3N10 c/10 sobre 0,30."""
+    lidos = [TextoLido("D1", "3N11 Ø10 c=283", "TXT02", 20, -5, 0.1), TextoLido("D2", "3N11 Ø10 c=283", "TXT02", 20, -6, 0.1),
+             TextoLido("P1", "10N11 c/20", "TXT02", 0, 0.6, 0.1), TextoLido("P2", "10N11 c/20", "TXT02", 0, 0, 0.1),
+             TextoLido("D3", "3N10 Ø10 c=1200", "TXT02", 20, -8, 0.1),
+             TextoLido("C1", "3N10 c/10", "COT01", 9.0, 0.1, 0.1, 9.15, 0.1)]   # inserção à esquerda, centro em 9,15
+    g = montar_grade(lidos)
+    g.cotas = [Cota("K1", 0.30, 9.0, 0.0, 9.3, 0.0)]
+    return g
+
+
+def test_calcular_devolve_a_conferencia():
+    """R-FER-CNF-001: sai junto com a lista, uma linha por posição, sem bloquear."""
+    dados = json.loads(json.dumps(grade_para_json(_conf_grade())))
+    r = json.loads(json.dumps(executar({"acao": "calcular", "grade": dados})))   # vai para a tela em JSON
+    assert [i["posicao"] for i in r["lista"]] == ["N10", "N11"]
+    conf = {c["posicao"]: c for c in r["conferencia"]}
+    assert conf["N10"]["ok"] and conf["N10"]["cotas"][0]["calculada"] == 4   # usa o centro e a cota que voltaram do JSON
+    assert not conf["N11"]["ok"] and conf["N11"]["vistas"][0]["soma"] == 20
+    assert conf["N11"]["vistas"][0]["handles"] == ["P1", "P2"]   # para o zoom
+
+
+def test_conferencia_nao_bloqueia_e_vai_mesmo_com_vermelho():
+    """R-FER-CNF-001: com campo vermelho a lista trava, a conferência sai."""
+    g = _conf_grade()
+    g.linhas[0].bitola = None
+    r = executar({"acao": "calcular", "grade": json.loads(json.dumps(grade_para_json(g)))})
+    assert "bloqueado" in r and {c["posicao"] for c in r["conferencia"]} == {"N10", "N11"}
+
+
+def test_selecao_junta_e_tira_cotas():
+    """R-FER-SEL-002 / R-FER-SEL-003: as DIMENSION seguem a seleção como os textos."""
+    base, nova = _conf_grade(), _conf_grade()
+    nova.cotas = [Cota("K1", 0.30, 9.0, 0.0, 9.3, 0.0), Cota("K2", 1.0, 0, 0, 1, 0)]
+    assert [c.handle for c in juntar_selecao(base, nova, "adicionar", None).cotas] == ["K1", "K2"]
+    tira = _conf_grade()
+    tira.linhas, tira.nao_entendi, tira.cotas = [], [], [Cota("K1", 0.30, 9.0, 0.0, 9.3, 0.0)]
+    assert juntar_selecao(base, tira, "remover", None).cotas == []

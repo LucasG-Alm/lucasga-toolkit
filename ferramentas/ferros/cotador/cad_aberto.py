@@ -10,6 +10,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from cotador.conferencia import Cota
 from cotador.grade import TextoLido
 
 RECUSADA = -2147418111  # RPC_E_CALL_REJECTED
@@ -85,6 +86,47 @@ def _texto(ent) -> str | None:
     return None
 
 
+def _centro(ent) -> tuple[float | None, float | None]:
+    """Centro do retângulo do texto (o MTEXT pode estar ancorado no canto); sem resposta, None = vale a inserção."""
+    try:
+        a, b = ent.GetBoundingBox()
+        return (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+    except Exception:
+        return None, None
+
+
+def cota_de(handle: str, nome: str, medida: float, texto_em: tuple, rotacao: float, ext1: tuple, ext2: tuple, sobrescrito: str) -> Cota | None:
+    """R-FER-CAD-009: a linha de cota é a medida centrada no texto, na direção da cota (girada: Rotation; alinhada: as extensões)."""
+    if nome == "AcDbRotatedDimension":
+        ang = rotacao
+    elif nome == "AcDbAlignedDimension":
+        ang = math.atan2(ext2[1] - ext1[1], ext2[0] - ext1[0])
+    else:
+        return None
+    from ezdxf.tools.text import plain_mtext
+
+    u = (math.cos(ang) * medida / 2, math.sin(ang) * medida / 2)
+    texto = " ".join(plain_mtext(sobrescrito or "").split())
+    return Cota(handle, medida, texto_em[0] - u[0], texto_em[1] - u[1], texto_em[0] + u[0], texto_em[1] + u[1], "" if "<>" in texto else texto)
+
+
+def cotas_de(entidades: Iterable) -> list[Cota]:
+    out = []
+    for ent in entidades:
+        nome = ent.ObjectName
+        if nome not in ("AcDbRotatedDimension", "AcDbAlignedDimension"):
+            continue
+        try:
+            rot = ent.Rotation if nome == "AcDbRotatedDimension" else 0.0
+            ext = (tuple(ent.ExtLine1Point), tuple(ent.ExtLine2Point)) if nome == "AcDbAlignedDimension" else ((0, 0), (0, 0))
+            c = cota_de(ent.Handle, nome, float(ent.Measurement), tuple(ent.TextPosition), rot, ext[0], ext[1], ent.TextOverride)
+        except Exception:
+            continue   # cota sem as propriedades (proxy, associativa quebrada): fica de fora da conferência
+        if c:
+            out.append(c)
+    return out
+
+
 def textos_de(doc, entidades: Iterable, progresso: Callable | None = None) -> list[TextoLido]:
     """R-FER-CAD-005: TEXT, MTEXT e os textos de dentro dos blocos inseridos.
 
@@ -98,7 +140,7 @@ def textos_de(doc, entidades: Iterable, progresso: Callable | None = None) -> li
         texto = _texto(ent)
         if texto is not None:
             p = ent.InsertionPoint
-            lidos.append(TextoLido(ent.Handle, texto, ent.Layer, p[0], p[1]))
+            lidos.append(TextoLido(ent.Handle, texto, ent.Layer, p[0], p[1], float(ent.Height), *_centro(ent)))
         elif ent.ObjectName == "AcDbBlockReference":
             bloco = doc.Blocks.Item(ent.EffectiveName if ent.IsDynamicBlock else ent.Name)
             origem = bloco.Origin
@@ -110,7 +152,7 @@ def textos_de(doc, entidades: Iterable, progresso: Callable | None = None) -> li
                 x, y = no_bloco((p[0] - origem[0], p[1] - origem[1]), ent.InsertionPoint,
                                 (ent.XScaleFactor, ent.YScaleFactor), ent.Rotation)
                 layer = ent.Layer if interno.Layer == "0" else interno.Layer
-                lidos.append(TextoLido(f"{ent.Handle}/{interno.Handle}", texto, layer, x, y))
+                lidos.append(TextoLido(f"{ent.Handle}/{interno.Handle}", texto, layer, x, y, float(interno.Height) * abs(ent.YScaleFactor)))
     return lidos
 
 
@@ -149,11 +191,11 @@ def _selecao(app, filtro: str, progresso: Callable | None) -> list | None:
     return list(selecao)
 
 
-def ler(app, progresso: Callable | None = None) -> tuple[InfoDesenho, list[TextoLido]] | None:
-    """R-FER-CAD-004: a selecao ativa, ou pede uma. None = cancelado (Esc)."""
+def ler(app, progresso: Callable | None = None) -> tuple[InfoDesenho, list[TextoLido], list[Cota]] | None:
+    """R-FER-CAD-004: a selecao ativa, ou pede uma. None = cancelado (Esc). R-FER-CAD-009: cotas tambem."""
     info = desenho_ativo(app)
-    ents = _selecao(app, "TEXT,MTEXT,INSERT", progresso)
-    return None if ents is None else (info, textos_de(app.ActiveDocument, ents, progresso))
+    ents = _selecao(app, "TEXT,MTEXT,INSERT,DIMENSION", progresso)
+    return None if ents is None else (info, textos_de(app.ActiveDocument, ents, progresso), cotas_de(ents))
 
 
 def zoom(app, x: float, y: float, altura: float = 2.0) -> None:

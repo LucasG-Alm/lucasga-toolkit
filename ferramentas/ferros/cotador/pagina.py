@@ -4,8 +4,10 @@ Acoes: ler (AutoCAD), zoom (AutoCAD), calcular, gravar (memoria ao lado do DWG),
 """
 
 import json
+from dataclasses import asdict
 from pathlib import Path
 
+from cotador.conferencia import Cota, TextoConf, conferir
 from cotador.grade import Bloqueado, Grade, Linha, TextoNaoEntendido, gravar_memoria, indicacoes, lista_da_grade, montar_grade, ler_memoria, tipo_de
 from cotador.lista import classificar
 from cotador.resumo import CA60_PADRAO, PESO_POR_M, resumos_por_aco
@@ -16,7 +18,7 @@ def _linha_para_json(l: Linha) -> dict:
         "handle": l.handle, "layer": l.layer, "texto": l.tag.texto, "posicao": f"{l.tag.letra}{l.tag.numero}",
         "numero": l.tag.numero, "bitola": l.bitola, "comprimento_cm": l.comprimento_cm,
         "quantidade": l.quantidade, "quantidade_desenho": l.tag.quantidade, "elemento": l.elemento,
-        "x": l.x, "y": l.y, "faltando": list(l.faltando), "difere": l.difere_do_desenho,
+        "x": l.x, "y": l.y, "altura": l.altura, "cx": l.cx, "cy": l.cy, "faltando": list(l.faltando), "difere": l.difere_do_desenho,
     }
 
 
@@ -24,7 +26,9 @@ def grade_para_json(grade: Grade) -> dict:
     planta = indicacoes(grade)  # R-FER-LIS-009
     return {
         "linhas": [{**_linha_para_json(l), "tipo": tipo_de(grade, l.tag.numero), "indicacao": l.handle in planta} for l in grade.linhas],
-        "nao_entendi": [{"handle": n.handle, "texto": n.texto, "x": n.x, "y": n.y} for n in grade.nao_entendi],
+        "nao_entendi": [{"handle": n.handle, "texto": n.texto, "x": n.x, "y": n.y, "layer": n.layer, "altura": n.altura, "cx": n.cx, "cy": n.cy}
+                        for n in grade.nao_entendi],
+        "cotas": [asdict(c) for c in grade.cotas],
         "multiplicadores": {str(k): v for k, v in grade.multiplicadores.items()},
         "tipos": {str(k): v for k, v in grade.tipos.items()},
     }
@@ -38,11 +42,13 @@ def grade_de_json(dados: dict) -> Grade:
             bitola=None if d.get("bitola") is None else float(d["bitola"]),
             comprimento_cm=None if d.get("comprimento_cm") is None else int(d["comprimento_cm"]),
             quantidade=None if d.get("quantidade") is None else int(d["quantidade"]), elemento=d["elemento"], x=d.get("x", 0.0), y=d.get("y", 0.0),
+            altura=d.get("altura", 0.0), cx=d.get("cx"), cy=d.get("cy"),
         ))
-    nao = [TextoNaoEntendido(n["handle"], n["texto"], n["x"], n["y"]) for n in dados.get("nao_entendi", [])]
+    nao = [TextoNaoEntendido(n["handle"], n["texto"], n["x"], n["y"], n.get("layer", ""), n.get("altura", 0.0), n.get("cx"), n.get("cy"))
+           for n in dados.get("nao_entendi", [])]
     mult = {int(k): int(v) for k, v in dados.get("multiplicadores", {}).items() if int(v) != 1}
     tipos = {int(k): str(v) for k, v in dados.get("tipos", {}).items()}
-    return Grade(linhas, nao, mult, tipos)
+    return Grade(linhas, nao, mult, tipos, [Cota(**c) for c in dados.get("cotas", [])])
 
 
 PROGRESSO = "@@FERROS_PROGRESSO@@"
@@ -64,16 +70,18 @@ def juntar_selecao(grade: Grade, nova: Grade, modo: str, elemento: str | None) -
     if modo == "nova":
         return nova
     if modo == "remover":
-        fora = {l.handle for l in nova.linhas} | {n.handle for n in nova.nao_entendi}
+        fora = {l.handle for l in nova.linhas} | {n.handle for n in nova.nao_entendi} | {c.handle for c in nova.cotas}
         return Grade([l for l in grade.linhas if l.handle not in fora],
-                     [n for n in grade.nao_entendi if n.handle not in fora], dict(grade.multiplicadores), dict(grade.tipos))
+                     [n for n in grade.nao_entendi if n.handle not in fora], dict(grade.multiplicadores), dict(grade.tipos),
+                     [c for c in grade.cotas if c.handle not in fora])
     tem = {l.handle for l in grade.linhas} | {n.handle for n in grade.nao_entendi}
     novas = [l for l in nova.linhas if l.handle not in tem]
     if elemento:
         for l in novas:
             l.elemento = elemento
+    ja = {c.handle for c in grade.cotas}
     return Grade(grade.linhas + novas, grade.nao_entendi + [n for n in nova.nao_entendi if n.handle not in tem],
-                 dict(grade.multiplicadores), dict(grade.tipos))
+                 dict(grade.multiplicadores), dict(grade.tipos), grade.cotas + [c for c in nova.cotas if c.handle not in ja])
 
 
 def _tabela_peso(peso: dict | None) -> dict[float, float]:
@@ -88,16 +96,26 @@ def _item_resumo(r) -> dict:
     return {"bitola": r.bitola, "comprimento_m": r.comprimento_m, "peso_por_m": r.peso_por_m, "peso_kg": r.peso_kg}
 
 
+def conferencia(grade: Grade) -> list[dict]:
+    """R-FER-CNF-001: com os textos como vieram do desenho (a quantidade editada na grade nao conta)."""
+    textos = [TextoConf(l.handle, l.tag.texto, l.x if l.cx is None else l.cx, l.y if l.cy is None else l.cy, l.altura, l.layer)
+              for l in grade.linhas]
+    textos += [TextoConf(n.handle, n.texto, n.x if n.cx is None else n.cx, n.y if n.cy is None else n.cy, n.altura, n.layer)
+               for n in grade.nao_entendi]
+    return [{**asdict(c), "ok": c.ok} for c in conferir(textos, grade.cotas)]
+
+
 def _calcular(grade: Grade, peso: dict | None, ca60: tuple[float, ...] = CA60_PADRAO) -> dict:
+    conf = {"conferencia": conferencia(grade)}   # nunca bloqueia (R-FER-CNF-001)
     tabela = _tabela_peso(peso)
     try:
         itens = lista_da_grade(grade)
         blocos = resumos_por_aco(itens, tabela, ca60)
     except Bloqueado as erro:
-        return {"bloqueado": str(erro)}
+        return {"bloqueado": str(erro), **conf}
     except KeyError as erro:
-        return {"bloqueado": erro.args[0]}
-    return {
+        return {"bloqueado": erro.args[0], **conf}
+    return {**conf,
         "lista": [{"posicao": f"{i.letra}{i.numero}", "bitola": i.bitola, "comprimento_unit_cm": i.comprimento_unit_cm,
                    "quantidade": i.quantidade, "comprimento_total_cm": i.comprimento_total_cm, "avisos": list(i.avisos)}
                   for i in itens],
@@ -159,13 +177,14 @@ def executar(pedido: dict) -> dict:
         lido = cad_aberto.ler(app, _avanco)
         if lido is None:
             return {"cancelado": True}
-        info, textos = lido
+        info, textos, cotas = lido
         modo = pedido.get("modo", "nova")
         caminho = str(info.caminho) if info.caminho else None
         if modo != "nova" and pedido.get("caminho") != caminho:
             return {"bloqueado": "Desenho diferente do lido: faça uma nova seleção."}  # R-FER-SEL-004
         avisos = [] if info.caminho else ["Desenho nunca salvo: a página não vai lembrar o que foi preenchido."]
         nova = montar_grade(textos, ler_memoria(info.caminho))
+        nova.cotas = cotas
         if modo != "nova":
             nova = juntar_selecao(grade_de_json(pedido["grade"]), nova, modo, pedido.get("elemento"))
         return {"desenho": {"nome": info.nome, "caminho": caminho}, "grade": grade_para_json(nova), "avisos": avisos}

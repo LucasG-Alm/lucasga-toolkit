@@ -199,3 +199,37 @@ def test_detalhar_substitui_o_texto_copiado_da_planta(desenho_temporario):
     assert ms.Count == antes  # 1 apagado, 1 tag nova, nenhuma cota
     assert [t.texto for t in r["textos"]] == ["2x12N4 %%C10 c=102"]
     assert doc.HandleToObject(planta.Handle).TextString == "12N4 c/20"
+
+
+def test_linha_da_cota_rotacionada_e_alinhada():
+    """R-FER-CAD-009: linha de cota = medida centrada no texto, na direção da cota; '<>' = sem texto próprio."""
+    from cotador.cad_aberto import cota_de
+
+    c = cota_de("H", "AcDbRotatedDimension", 2.0, (5.0, 1.0), rotacao=math.pi / 2, ext1=(0, 0), ext2=(9, 9), sobrescrito="<>")
+    assert (round(c.ax, 9), round(c.ay, 9), round(c.bx, 9), round(c.by, 9), c.medida, c.texto) == (5.0, 0.0, 5.0, 2.0, 2.0, "")
+    c = cota_de("H", "AcDbAlignedDimension", 1.0, (0.0, 0.0), rotacao=0.0, ext1=(0, 0), ext2=(3, 4), sobrescrito="10N11 c/20")
+    assert (round(c.bx, 9), round(c.by, 9), c.texto) == (0.3, 0.4, "10N11 c/20")
+    assert cota_de("H", "AcDbRadialDimension", 1.0, (0, 0), 0.0, (0, 0), (1, 0), "") is None
+
+
+@autocad
+def test_le_cotas_altura_e_centro_do_desenho_ativo(desenho_temporario):
+    """R-FER-CAD-009 / R-FER-CNF-003: a cota de 1,80 com '10N11 c/20' ao lado confere 10 barras."""
+    from cotador.conferencia import TextoConf, conferir
+
+    app, doc = desenho_temporario
+    ms = doc.ModelSpace
+    ms.AddDimRotated(cad_aberto.ponto(0, 0), cad_aberto.ponto(1.8, 0), cad_aberto.ponto(0.9, -0.5), 0.0)
+    alinhada = ms.AddDimAligned(cad_aberto.ponto(5, 0), cad_aberto.ponto(5, 0.3), cad_aberto.ponto(4.5, 0.15))
+    alinhada.TextOverride = "3N10 c/10"
+    t = ms.AddMText(cad_aberto.ponto(0.5, -0.35), 1, "10N11 c/20")
+    t.Height, t.Layer = 0.1, "0"
+    ms.AddText("3N11 %%C10 c=283", cad_aberto.ponto(0, 5), 0.1)
+    cotas = cad_aberto.cotas_de(list(ms))
+    assert sorted(round(c.medida, 6) for c in cotas) == [0.3, 1.8]
+    assert {c.texto for c in cotas} == {"", "3N10 c/10"}
+    lidos = {l.texto: l for l in cad_aberto.textos_de(doc, list(ms))}
+    m = lidos["10N11 c/20"]
+    assert m.altura == 0.1 and m.cx is not None and m.cx > m.x
+    conf = conferir([TextoConf(l.handle, l.texto, l.cx or l.x, l.cy or l.y, l.altura, "COT01") for l in lidos.values() if "c/" in l.texto], cotas)
+    assert [k.calculada for c in conf for k in c.cotas if c.posicao == "N11"] == [10]

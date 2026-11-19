@@ -22,6 +22,9 @@ class TextoLido:
     layer: str
     x: float
     y: float
+    altura: float = 0.0               # conferencia (R-FER-CNF-003/005)
+    cx: float | None = None           # centro do texto, quando o AutoCAD da; senao vale a insercao
+    cy: float | None = None
 
 
 @dataclass
@@ -35,6 +38,9 @@ class Linha:
     elemento: str
     x: float = 0.0
     y: float = 0.0
+    altura: float = 0.0
+    cx: float | None = None
+    cy: float | None = None
 
     @property
     def faltando(self) -> tuple[str, ...]:
@@ -51,6 +57,10 @@ class TextoNaoEntendido:
     texto: str
     x: float
     y: float
+    layer: str = ""
+    altura: float = 0.0
+    cx: float | None = None
+    cy: float | None = None
 
 
 @dataclass
@@ -59,6 +69,7 @@ class Grade:
     nao_entendi: list[TextoNaoEntendido]
     multiplicadores: dict[int, int] = field(default_factory=dict)
     tipos: dict[int, str] = field(default_factory=dict)  # so o que o usuario escreveu (R-FER-LIS-008)
+    cotas: list = field(default_factory=list)  # DIMENSION da selecao (conferencia.Cota, R-FER-CNF-003)
 
 
 def tipo_de(grade: Grade, numero: int) -> str:
@@ -76,7 +87,7 @@ def montar_grade(lidos: Sequence[TextoLido], memoria: Mapping | None = None) -> 
     for lido in lidos:
         achado = classificar(lido.texto)
         if isinstance(achado, NaoEntendi):
-            nao_entendi.append(TextoNaoEntendido(lido.handle, lido.texto, lido.x, lido.y))
+            nao_entendi.append(TextoNaoEntendido(lido.handle, lido.texto, lido.x, lido.y, lido.layer, lido.altura, lido.cx, lido.cy))
         elif achado is not None:
             salvo = salvos.get(lido.handle, {})
             linhas.append(Linha(
@@ -89,6 +100,9 @@ def montar_grade(lidos: Sequence[TextoLido], memoria: Mapping | None = None) -> 
                 elemento=salvo.get("elemento", lido.layer),
                 x=lido.x,
                 y=lido.y,
+                altura=lido.altura,
+                cx=lido.cx,
+                cy=lido.cy,
             ))
     if memoria.get("ordem"):  # R-FER-MEM-004: ordem manual; tag nova (fora da lista) vai pro fim
         posicao = {h: i for i, h in enumerate(memoria["ordem"])}

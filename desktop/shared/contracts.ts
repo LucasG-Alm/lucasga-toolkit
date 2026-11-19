@@ -62,7 +62,7 @@ export interface FerrosLinha {
   bitola: number | null; comprimento_cm: number | null; quantidade: number | null; quantidade_desenho: number | null;
   elemento: string; x: number; y: number; faltando: string[]; difere: boolean; tipo?: string; indicacao?: boolean;
 }
-export interface FerrosGrade { linhas: FerrosLinha[]; nao_entendi: {handle: string; texto: string; x: number; y: number}[]; multiplicadores: Record<string, number>; tipos?: Record<string, string> }
+export interface FerrosGrade { linhas: FerrosLinha[]; nao_entendi: {handle: string; texto: string; x: number; y: number}[]; multiplicadores: Record<string, number>; tipos?: Record<string, string>; cotas?: unknown[] }
 export interface FerrosDesenho { nome: string; caminho: string | null }
 export interface FerrosPedido {
   acao: 'ler' | 'desenho' | 'zoom' | 'calcular' | 'gravar' | 'exportar' | 'plotar' | 'cotar';
@@ -75,7 +75,14 @@ export interface FerrosPonto { handle: string; x: number; y: number }
 export interface FerrosItemLista { posicao: string; bitola: number; comprimento_unit_cm: number; quantidade: number; comprimento_total_cm: number; avisos: string[] }
 export interface FerrosItemResumo { bitola: number; comprimento_m: number; peso_por_m: number; peso_kg: number }
 export interface FerrosResumoAco { aco: string; linhas: FerrosItemResumo[]; total: number }
+// R-FER-CNF-*: conferência cota × chamada × detalhe, uma por posição
+export interface FerrosConferencia {
+  posicao: string; ok: boolean; detalhe: string[]; aceitas: number[]; avisos: string[];
+  vistas: { soma: number; textos: string[]; handles: string[] }[];
+  cotas: { texto: string; handle: string; quantidade: number; espacamento: number | null; medida_m: number | null; calculada: number | null }[];
+}
 export interface FerrosResposta {
+  conferencia?: FerrosConferencia[];
   desenho?: FerrosDesenho; grade?: FerrosGrade; avisos?: string[]; cancelado?: boolean;
   lista?: FerrosItemLista[]; resumo?: FerrosItemResumo[]; total?: number; bloqueado?: string; arquivo?: string;
   resumos?: FerrosResumoAco[]; ca60?: number[]; existe?: number; plotado?: number;

@@ -27,6 +27,7 @@ Etapas: **1 Contar** (ler + grade + Excel FERRO) → **2 Plotar tabela** → **3
 | R-FER-CAD-006 | Toda ação que escreve confere que o desenho ativo é o mesmo da leitura; se não for, bloqueia e pede para ler de novo. |
 | R-FER-CAD-007 | Zoom em um handle centraliza o objeto na tela, sem selecioná-lo nem alterá-lo. |
 | R-FER-CAD-008 | Ler nunca altera o desenho. |
+| R-FER-CAD-009 | Para a conferência (R-FER-CNF-*), a leitura também traz a altura e o centro de cada texto e as DIMENSION giradas e alinhadas da seleção: medida, linha de cota (a medida centrada no texto da cota, na direção dela) e o texto sobrescrito (`<>` = nenhum). As demais cotas (raio, ângulo…) ficam de fora. |
 
 ## Etapa 1 — Contar
 
@@ -72,6 +73,23 @@ Etapas: **1 Contar** (ler + grade + Excel FERRO) → **2 Plotar tabela** → **3
 | R-FER-PES-002 | Bitola sem peso na tabela: erro nomeando a bitola; nunca peso zero ou estimado. |
 | R-FER-PES-003 | CA-60 = bitolas da lista editável na página (padrão Ø 4,2 e 5,0); as demais são CA-50. Cada aço tem seu RESUMO e seu total; sem bitola CA-60, o RESUMO CA-60 não aparece (na tela, na tabela plotada e na planilha). |
 | R-FER-PES-004 | Peso padrão das bitolas CA-60: 4,2 → 0,109 e 5,0 → 0,154 kg/m (NBR 7480), editável como os demais. |
+
+### Conferência cota × chamada × detalhe (`conferencia.py`)
+
+Decisão de 19/11/2026 (Lucas, grill Q1–Q7): as quantidades indicadas nas cotas, nas linhas de
+chamada e no detalhamento devem bater sempre. A conferência só avisa; quem decide é o Lucas
+("posso adotar 1 a mais ou 1 a menos dependendo do caso").
+
+| ID | Regra |
+|----|-------|
+| R-FER-CNF-001 | Aba **Conferir** da página Ferros, ao lado de Contar e Cotar, com leitura própria (selecione a prancha com textos e cotas). Mostra "X de Y posições não batem" e, por posição que não bate, o detalhe, o que não bate e zoom nas chamadas e na cota; "Mostrar todas" lista também as que batem. Só avisa: não grava memória nem mexe na grade do Contar. |
+| R-FER-CNF-002 | Detalhe = tags com bitola e comprimento. Quantidades aceitas para a posição: o total de cada tag, a unidade dela (a quantidade sem o `2x`) e o total da posição. Tolerância ±1 em toda comparação. |
+| R-FER-CNF-003 | Cota = texto com quantidade (sem bitola nem comprimento) num layer com `COT` no nome, ou o texto sobrescrito na própria DIMENSION (Q6, 19/11: pela distância à cota dava falso alarme). A medida é a da DIMENSION cuja linha fica a até 3 alturas de texto (a mais próxima). Cada cota confere sozinha: medida ÷ espaçamento + 1 = quantidade escrita (sem DIMENSION perto, essa parte não confere), e a quantidade escrita é uma das aceitas do detalhe. |
+| R-FER-CNF-004 | Chamada = texto com quantidade, sem bitola nem comprimento, que não é cota. As chamadas da mesma posição na mesma vista somam, e a soma tem que ser uma das quantidades aceitas do detalhe (ex.: 4 × `2N19 C/5` na vista = 8 = unidade de `2x8N19`). |
+| R-FER-CNF-005 | Vista = chamadas da mesma posição a até 60 alturas de texto umas das outras (encadeadas). Título não conta (Q7, 19/11: no DWG da 504 os títulos de quadro ficam em cima e cobrem várias vistas). A mesma barra em outra vista costuma estar bem mais longe (planta × corte da 504: 120+ alturas). |
+| R-FER-CNF-006 | Espaçamento: `c/` diferentes entre cotas, chamadas e detalhe da mesma posição geram aviso (`c/VAR` e malha não entram). |
+| R-FER-CNF-007 | Um texto com várias posições (`12N4 e 12N5 c/20`) vale para cada uma delas. |
+| R-FER-CNF-008 | Posição sem detalhe: só a medida da cota é conferida. Cota sem `c/` numérico não confere a medida. |
 
 ### Memória do desenho (`.ferros.json`)
 
